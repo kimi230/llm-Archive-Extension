@@ -1,0 +1,47 @@
+{
+    "manifest_version": 3,
+    "name": "LLM Archive Extension",
+    "version": "1.0.0",
+    "icons": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    },
+    "description": "Jeff Su 스타일의 LLM 아카이빙 도구",
+    "permissions": ["sidePanel", "storage", "tabs", "scripting", "activeTab", "clipboardRead"],
+    "host_permissions": [
+      "https://chatgpt.com/*",
+      "https://gemini.google.com/*",
+      "https://chat.openai.com/*",
+      "https://claude.ai/*",
+      "https://x.com/*",
+      "https://grok.com/*",
+      "https://lh3.googleusercontent.com/*",
+      "https://*.googleusercontent.com/*",
+      "https://contribution.usercontent.google.com/*",
+      "https://*.fastcompany.com/*",
+      "https://*.wordpress.com/*",
+      "https://*.theverge.com/*",
+      "https://i.ytimg.com/*",
+      "https://image.adsoftheworld.com/*",
+      "https://*.brandinginasia.com/*",
+      "https://*.hakuhodo-global.com/*"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    },
+    "commands": {
+      "toggle-sidepanel": {
+        "description": "사이드패널 열기"
+      }
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ]
+  }
