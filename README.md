@@ -21,8 +21,6 @@ LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하�
 | **Claude** (claude.ai) | ✅ | `#d97757` |
 | **Gemini** (gemini.google.com) | ✅ | `#7b61ff` |
 | **Grok** (grok.com) | ✅ | `#1d9bf0` |
-| Copilot | 🔮 예정 | `#0078d4` |
-| Perplexity | 🔮 예정 | `#20b2aa` |
 
 ### 💾 로컬 파일 시스템 저장
 - **File System Access API** 사용으로 브라우저에서 직접 로컬 디렉토리에 저장
@@ -71,8 +69,8 @@ google_extension_practice/
 
 1. 이 저장소를 클론하거나 다운로드합니다:
    ```bash
-   git clone <repository-url>
-   cd google_extension_practice
+   git clone https://github.com/kimi230/llm-Archive-Extension.git
+   cd llm-Archive-Extension
    ```
 
 2. Chrome 브라우저에서 `chrome://extensions/` 접속
@@ -207,17 +205,6 @@ chrome://extensions → 세부정보 → 서비스 워커 검사
 | `downloadImageFromBackground()` | Background script를 통한 이미지 다운로드 |
 | `saveClipToFileSystem()` | 파일 시스템에 클립 저장 |
 | `renderDirectoryTree()` | 디렉토리 트리 UI 렌더링 |
-
----
-
-## 📋 TODO
-
-- [ ] Copilot 지원 추가
-- [ ] Perplexity 지원 추가
-- [ ] 대화 검색 기능
-- [ ] 핀 기능 구현 (현재 UI만 존재)
-- [ ] 내보내기 형식 선택 (JSON, HTML 등)
-- [ ] 자동 저장 옵션
 
 ---
 
