@@ -137,6 +137,7 @@ const LLM_COLORS = {
 
 let currentDetectedLLM = 'Unknown';
 let lastDetectedUrl = '';
+let currentGeneratedSummary = ''; // AI가 생성한 요약 저장
 
 /**
  * 현재 활성 탭의 LLM을 감지하고 UI 업데이트
@@ -163,6 +164,7 @@ async function detectAndUpdateLLM() {
 			if (titleInput) titleInput.value = '';
 			if (tagsInput) tagsInput.value = '';
 			if (statusEl) statusEl.textContent = '';
+			currentGeneratedSummary = ''; // 요약 초기화
 		}
 
 		currentDetectedLLM = detectLLMFromUrl(url);
@@ -352,8 +354,10 @@ async function saveClipboardMarkdown() {
 			id: Date.now().toString(),
 			title,
 			content: md,
+			content: md,
 			folderId: '00',
 			sourceUrl,
+			summary: currentGeneratedSummary, // AI 요약 포함
 			createdAt: new Date().toISOString()
 		};
 
@@ -743,6 +747,7 @@ async function saveGrokConversation() {
 			content: md,
 			folderId: '00',
 			sourceUrl: extracted.url,
+			summary: currentGeneratedSummary, // AI 요약 포함
 			createdAt: new Date().toISOString()
 		};
 
@@ -923,6 +928,7 @@ async function saveGeminiConversation() {
 			content: md,
 			folderId: '00',
 			sourceUrl: extracted.url,
+			summary: currentGeneratedSummary, // AI 요약 포함
 			createdAt: new Date().toISOString()
 		};
 
@@ -1177,6 +1183,7 @@ async function saveChatGPTConversation() {
 			content: md,
 			folderId: '00',
 			sourceUrl: extracted.url,
+			summary: currentGeneratedSummary, // AI 요약 포함
 			createdAt: new Date().toISOString()
 		};
 
@@ -1397,6 +1404,7 @@ async function saveClaudeConversation() {
 			content: md,
 			folderId: '00',
 			sourceUrl: extracted.url,
+			summary: currentGeneratedSummary, // AI 요약 포함
 			createdAt: new Date().toISOString()
 		};
 
@@ -2002,8 +2010,9 @@ async function saveClipToFileSystem(clip) {
 		const title = String(clip.title || '').trim() || safeTitle;
 		const body = String(clip.content || '');
 		const yamlTags = tags.length ? `\ntags:\n${formatTags(tags)}` : '\ntags: []';
+		const yamlSummary = clip.summary ? `\nsummary: ${yamlQuote(clip.summary)}` : '';
 		// YAML frontmatter 생성
-		const yamlFrontmatter = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}\n---`;
+		const yamlFrontmatter = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}${yamlSummary}\n---`;
 
 		// 파일 내용 조합 (YAML을 맨 위로)
 		const content = `${yamlFrontmatter}\n\n# ${title}\n\n${body}\n`;
@@ -2102,6 +2111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				// 요약 내용은? (Optional: 콘솔에 로그 or 알림)
 				if (metadata.summary) {
 					console.log('AI Summary:', metadata.summary);
+					currentGeneratedSummary = metadata.summary;
 				}
 
 			} catch (error) {
