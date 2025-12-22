@@ -50,6 +50,22 @@
   <h3>🗂️ LLM Archive</h3>
 
   <div style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <strong>⚙️ API 설정</strong>
+      <span id="api-key-status" style="font-size: 0.8em; color: #888;">확인 중...</span>
+    </div>
+    <div style="display: flex; gap: 6px; align-items: center;">
+      <input id="openai-api-key" type="password" placeholder="OpenAI API Key (sk-...)"
+        style="flex: 1; padding: 6px; box-sizing: border-box; font-size: 0.85em;">
+      <button id="save-api-key-btn"
+        style="background: #10a37f; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">저장</button>
+    </div>
+    <div style="margin-top: 6px; font-size: 0.75em; color: #888;">
+      <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #4285f4;">OpenAI에서 API Key 발급받기 →</a>
+    </div>
+  </div>
+
+  <div style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
     <div style="display: flex; align-items: center; justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <strong>📦 저장소 연결</strong>
@@ -76,35 +92,37 @@
       </div>
     </div>
     <div style="margin-top: 8px;">
-      <input id="clip-title" type="text" placeholder="제목 (비우면 자동)"
-        style="width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;">
+      <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+        <input id="clip-title" type="text" placeholder="제목 (비우면 자동)"
+          style="flex: 1; padding: 6px; box-sizing: border-box;">
+        <button id="ai-gen-btn" title="AI로 제목/태그/요약 자동 생성"
+          style="background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">✨
+          AI</button>
+      </div>
       <div style="display: flex; gap: 8px; align-items: center;">
         <input id="default-tags" type="text" placeholder="태그 (쉼표 구분)"
           style="flex: 1; padding: 6px; box-sizing: border-box;">
-        <button id="save-tags-btn"
-          style="background: #34a853; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">저장</button>
       </div>
     </div>
     <div style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
-      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-        <div id="llm-detection" style="flex: 1; font-size: 0.9em; font-weight: 500;">
+      <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+        <div id="llm-detection"
+          style="flex: 1; font-size: 0.9em; font-weight: 500; display: flex; align-items: center; min-width: 0;">
           <span id="llm-indicator"
-            style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; margin-right: 6px;"></span>
-          <span id="llm-name">LLM 감지 중...</span>
+            style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; margin-right: 6px; flex-shrink: 0;"></span>
+          <span id="llm-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">LLM 감지 중...</span>
         </div>
-        <button id="refresh-detection-btn"
-          style="background: transparent; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">🔄</button>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
         <button id="save-conversation-btn"
-          style="flex: 1; background: #4285f4; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 500;"
+          style="background: #4285f4; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; white-space: nowrap;"
           disabled>
-          💬 대화 저장
+          💬 저장
         </button>
         <button id="save-clipboard-btn"
-          style="background: #666; color: white; border: none; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
-          📋 클립보드
+          style="background: #666; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; white-space: nowrap;">
+          📋 클립
         </button>
+        <button id="refresh-detection-btn"
+          style="background: transparent; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">🔄</button>
       </div>
       <div id="save-status" style="margin-top: 8px; font-size: 0.85em; color: #888;"></div>
     </div>

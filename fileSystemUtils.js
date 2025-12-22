@@ -21,6 +21,9 @@ async function getDB() {
 // 디렉토리 선택 및 저장
 async function chooseAndStoreDirectory() {
 	try {
+		if (typeof window.showDirectoryPicker !== 'function') {
+			throw new Error('이 브라우저는 Directory System API를 지원하지 않습니다.');
+		}
 		// 사용자 제스처로 디렉토리 선택
 		const dirHandle = await window.showDirectoryPicker();
 
@@ -38,7 +41,13 @@ async function chooseAndStoreDirectory() {
 
 		return dirHandle;
 	} catch (error) {
-		console.error('디렉토리 선택 실패:', error);
+		console.error('디렉토리 선택 에러 상세:', {
+			name: error.name,
+			message: error.message,
+			code: error.code,
+			raw: error
+		});
+		console.error(`[Error String]: ${String(error)} name=${error.name} msg=${error.message}`);
 		throw error;
 	}
 }

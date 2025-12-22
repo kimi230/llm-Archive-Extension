@@ -7,6 +7,7 @@ import {
 	getOrCreateSubfolder,
 	getOrCreateNestedSubfolder
 } from './fileSystemUtils.js';
+import { generateMetadata } from './openaiUtils.js';
 
 
 let currentDirHandle = null;
@@ -15,6 +16,43 @@ let pinnedPaths = [];        // 핀된 경로 목록 (배열의 배열)
 
 // 핀 최대 개수
 const MAX_PINS = 5;
+
+// API Key 관련 함수
+async function loadApiKey() {
+	try {
+		const { openaiApiKey = '' } = await chrome.storage.local.get('openaiApiKey');
+		return openaiApiKey;
+	} catch (error) {
+		console.error('API Key 로드 실패:', error);
+		return '';
+	}
+}
+
+async function saveApiKey(key) {
+	try {
+		await chrome.storage.local.set({ openaiApiKey: key });
+		return true;
+	} catch (error) {
+		console.error('API Key 저장 실패:', error);
+		return false;
+	}
+}
+
+async function updateApiKeyStatus() {
+	const statusEl = document.getElementById('api-key-status');
+	const inputEl = document.getElementById('openai-api-key');
+	if (!statusEl) return;
+
+	const key = await loadApiKey();
+	if (key && key.trim()) {
+		statusEl.textContent = '✅ 설정됨';
+		statusEl.style.color = '#34a853';
+		if (inputEl) inputEl.value = key;
+	} else {
+		statusEl.textContent = '❌ 미설정';
+		statusEl.style.color = '#f44336';
+	}
+}
 
 
 // Turndown 인스턴스 생성 및 설정
@@ -98,6 +136,7 @@ const LLM_COLORS = {
 };
 
 let currentDetectedLLM = 'Unknown';
+let lastDetectedUrl = '';
 
 /**
  * 현재 활성 탭의 LLM을 감지하고 UI 업데이트
@@ -110,7 +149,21 @@ async function detectAndUpdateLLM() {
 	try {
 		const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
 		const tab = tabs && tabs[0];
+
 		const url = tab && tab.url ? tab.url : '';
+
+		// URL이 변경되었으면 입력창 초기화
+		if (url !== lastDetectedUrl) {
+			lastDetectedUrl = url;
+			const titleInput = document.getElementById('clip-title');
+			const tagsInput = document.getElementById('default-tags');
+			// 상태 메시지도 초기화
+			const statusEl = document.getElementById('save-status');
+
+			if (titleInput) titleInput.value = '';
+			if (tagsInput) tagsInput.value = '';
+			if (statusEl) statusEl.textContent = '';
+		}
 
 		currentDetectedLLM = detectLLMFromUrl(url);
 		const color = LLM_COLORS[currentDetectedLLM] || LLM_COLORS.Unknown;
@@ -122,14 +175,14 @@ async function detectAndUpdateLLM() {
 			if (saveBtn) {
 				saveBtn.disabled = true;
 				saveBtn.style.background = '#ccc';
-				saveBtn.textContent = '💬 대화 저장';
+				saveBtn.textContent = '💬 저장';
 			}
 		} else {
 			if (nameEl) nameEl.textContent = `${currentDetectedLLM} 감지됨`;
 			if (saveBtn) {
 				saveBtn.disabled = false;
 				saveBtn.style.background = color;
-				saveBtn.textContent = `💬 ${currentDetectedLLM} 대화 저장`;
+				saveBtn.textContent = `💬 저장`;
 			}
 		}
 	} catch (error) {
@@ -294,7 +347,7 @@ async function saveClipboardMarkdown() {
 		const manualTitle = titleInput ? String(titleInput.value || '').trim() : '';
 		const title = manualTitle || buildAutoTitle(sourceUrl);
 
-		// 선택 안하면 [00] Inbox로 저장
+		// 선택 안하면 00. Inbox로 저장
 		const clip = {
 			id: Date.now().toString(),
 			title,
@@ -357,7 +410,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const img of t.images) {
 				if (img.role === 'user' && mediaMap && mediaMap[img.src]) {
 					const { fileName, alt } = mediaMap[img.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -365,7 +418,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const video of t.videos) {
 				if (video.role === 'user' && mediaMap && mediaMap[video.src]) {
 					const { fileName } = mediaMap[video.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -377,7 +430,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const img of t.images) {
 				if (img.role === 'assistant' && mediaMap && mediaMap[img.src]) {
 					const { fileName, alt } = mediaMap[img.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -385,7 +438,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const video of t.videos) {
 				if (video.role === 'assistant' && mediaMap && mediaMap[video.src]) {
 					const { fileName } = mediaMap[video.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -587,7 +640,7 @@ function buildGrokMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const img of t.images) {
 				if (mediaMap && mediaMap[img.src]) {
 					const { fileName, alt } = mediaMap[img.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -602,7 +655,7 @@ function buildGrokMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 }
 
 async function saveGrokConversation() {
-	const statusEl = document.getElementById('grok-status');
+	const statusEl = document.getElementById('save-status');
 	const btn = document.getElementById('save-grok-btn');
 	const titleInput = document.getElementById('clip-title');
 
@@ -643,7 +696,7 @@ async function saveGrokConversation() {
 		const mediaMap = {};
 		if (uniqueImages.length > 0 && currentDirHandle) {
 			setStatus(`이미지 다운로드 중... (${uniqueImages.length}개)`, '#888');
-			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '[98] Attachments');
+			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '98. Attachments');
 			const mediaSubDir = await getOrCreateSubfolder(attachmentsDir, mediaFolderName);
 
 			for (let i = 0; i < uniqueImages.length; i++) {
@@ -723,7 +776,7 @@ async function saveGrokConversation() {
 }
 
 async function saveGeminiConversation() {
-	const statusEl = document.getElementById('gemini-status');
+	const statusEl = document.getElementById('save-status');
 	const btn = document.getElementById('save-gemini-btn');
 	const titleInput = document.getElementById('clip-title');
 
@@ -780,7 +833,7 @@ async function saveGeminiConversation() {
 		const mediaMap = {}; // { originalSrc: { fileName, alt, type } }
 		if (totalMedia > 0 && currentDirHandle) {
 			setStatus(`미디어 다운로드 중... (${totalMedia}개)`, '#888');
-			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '[98] Attachments');
+			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '98. Attachments');
 			// 문서 제목으로 하위 폴더 생성
 			const mediaSubDir = await getOrCreateSubfolder(attachmentsDir, mediaFolderName);
 
@@ -1025,7 +1078,7 @@ function buildChatGPTMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const img of t.images) {
 				if (mediaMap && mediaMap[img.src]) {
 					const { fileName, alt } = mediaMap[img.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -1040,7 +1093,7 @@ function buildChatGPTMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 }
 
 async function saveChatGPTConversation() {
-	const statusEl = document.getElementById('chatgpt-status');
+	const statusEl = document.getElementById('save-status');
 	const btn = document.getElementById('save-chatgpt-btn');
 	const titleInput = document.getElementById('clip-title');
 
@@ -1078,7 +1131,7 @@ async function saveChatGPTConversation() {
 		const mediaMap = {};
 		if (uniqueImages.length > 0 && currentDirHandle) {
 			setStatus(`이미지 다운로드 중... (${uniqueImages.length}개)`, '#888');
-			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '[98] Attachments');
+			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '98. Attachments');
 			const mediaSubDir = await getOrCreateSubfolder(attachmentsDir, mediaFolderName);
 
 			for (let i = 0; i < uniqueImages.length; i++) {
@@ -1244,7 +1297,7 @@ function buildClaudeMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const img of t.images) {
 				if (mediaMap && mediaMap[img.src]) {
 					const { fileName, alt } = mediaMap[img.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../[98] Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n![${alt}](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -1259,7 +1312,7 @@ function buildClaudeMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 }
 
 async function saveClaudeConversation() {
-	const statusEl = document.getElementById('claude-status');
+	const statusEl = document.getElementById('save-status');
 	const btn = document.getElementById('save-claude-btn');
 	const titleInput = document.getElementById('clip-title');
 
@@ -1297,7 +1350,7 @@ async function saveClaudeConversation() {
 		const mediaMap = {};
 		if (uniqueImages.length > 0 && currentDirHandle) {
 			setStatus(`이미지 다운로드 중... (${uniqueImages.length}개)`, '#888');
-			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '[98] Attachments');
+			const attachmentsDir = await getOrCreateSubfolder(currentDirHandle, '98. Attachments');
 			const mediaSubDir = await getOrCreateSubfolder(attachmentsDir, mediaFolderName);
 
 			for (let i = 0; i < uniqueImages.length; i++) {
@@ -1392,7 +1445,7 @@ function updateSelectedFolderUI() {
 	const el = document.getElementById('selected-folder');
 	if (!el) return;
 	if (!selectedFolderPath || selectedFolderPath.length === 0) {
-		el.textContent = '저장 위치: /[00] Inbox (기본) — 트리에서 폴더를 Shift+클릭';
+		el.textContent = '저장 위치: /00. Inbox (기본) — 트리에서 폴더를 Shift+클릭';
 		return;
 	}
 	el.textContent = `저장 위치: /${selectedFolderPath.join('/')}`;
@@ -1531,27 +1584,7 @@ function renderPinList() {
 }
 
 
-async function loadDefaultTags() {
-	const input = document.getElementById('default-tags');
-	if (!input) return;
-	try {
-		const { defaultTags = '' } = await chrome.storage.local.get('defaultTags');
-		input.value = defaultTags;
-	} catch (error) {
-		// ignore
-	}
-}
 
-async function saveDefaultTags() {
-	const input = document.getElementById('default-tags');
-	if (!input) return;
-	const value = String(input.value || '');
-	try {
-		await chrome.storage.local.set({ defaultTags: value });
-	} catch (error) {
-		// ignore
-	}
-}
 
 function sortHandles(entries) {
 	// directories first, then files; name asc
@@ -1880,13 +1913,18 @@ async function handleSelectDirectory() {
 			loadSelectedFolderPath();
 		}
 	} catch (error) {
-		console.error('디렉토리 선택 실패:', error);
-		// 사용자가 취소한 경우
-		if (error.name === 'AbortError') {
+		console.error('Final Error Catch:', error);
+		const errName = error.name || 'UnknownName';
+		const errMsg = error.message || 'UnknownMessage';
+		const fullMsg = `오류: ${errName} - ${errMsg}`;
+
+		alert(fullMsg);
+
+		if (errName === 'AbortError') {
 			statusDiv.textContent = '취소됨';
 			statusDiv.style.color = '#888';
 		} else {
-			statusDiv.textContent = '❌ 선택 실패';
+			statusDiv.textContent = `❌ ${fullMsg}`;
 			statusDiv.style.color = '#f44336';
 		}
 	} finally {
@@ -1902,14 +1940,15 @@ async function saveClipToFileSystem(clip) {
 	}
 
 	try {
-		// 기본 태그 로드
+
+		// 기본 태그 로드 (UI 입력창에서)
+		// 사용자가 AI로 생성했거나 직접 입력한 내용을 그대로 사용
 		let defaultTagsRaw = '';
-		try {
-			const { defaultTags = '' } = await chrome.storage.local.get('defaultTags');
-			defaultTagsRaw = defaultTags;
-		} catch (error) {
-			// ignore
+		const tagsInput = document.getElementById('default-tags');
+		if (tagsInput) {
+			defaultTagsRaw = tagsInput.value;
 		}
+
 		const tags = String(defaultTagsRaw || '')
 			.split(',')
 			.map(t => t.trim())
@@ -1922,24 +1961,52 @@ async function saveClipToFileSystem(clip) {
 			folderHandle = await getOrCreateNestedSubfolder(currentDirHandle, selectedFolderPath);
 			folderPathLabel = `/${selectedFolderPath.join('/')}`;
 		} else {
-			// 기본 저장 위치는 [00] Inbox
+			// 기본 저장 위치는 00. Inbox
 			// (이전에 만들어진 pending 데이터가 folderId 01~99 등을 갖고 있으면 기존 규칙 유지)
-			const folderName = (String(clip.folderId) === '00') ? '[00] Inbox' : `[${clip.folderId}]`;
+			const folderName = (String(clip.folderId) === '00') ? '00. Inbox' : `${clip.folderId}.`;
 			folderHandle = await getOrCreateSubfolder(currentDirHandle, folderName);
 			folderPathLabel = `/${folderName}`;
 		}
 
-		// 파일명 생성 (날짜_소스_제목.md 형식)
+		// 파일명 생성: 제목 있으면 제목만, 없으면 YYYYMMDD_HHMM 형식
 		const safeTitle = sanitizeFileName(clip.title);
-		const fileName = `${safeTitle}_${sanitizeFileName(clip.id)}.md`;
+		const hasManualTitle = safeTitle && safeTitle !== 'untitled';
+		let fileName;
+		if (hasManualTitle) {
+			// 제목이 있으면 제목만 사용
+			fileName = `${safeTitle}.md`;
+		} else {
+			// 제목이 없으면 날짜시간 형식
+			const d = new Date();
+			const pad = (n) => String(n).padStart(2, '0');
+			const timestamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+			fileName = `${timestamp}.md`;
+		}
 
-		// 메타데이터 + 본문(Markdown) 생성 (YAML frontmatter)
+		// 메타데이터 + 본문(Markdown) 생성 (YAML frontmatter를 맨 아래로)
 		const llm = detectLLMFromUrl(clip.sourceUrl);
-		const savedAt = new Date().toISOString();
+		// 로컬 시간 형식으로 변환 (예: 2025-12-23T01:13:31+09:00)
+		const now = new Date();
+		const tzOffset = -now.getTimezoneOffset();
+		const tzSign = tzOffset >= 0 ? '+' : '-';
+		const tzHours = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
+		const tzMins = String(Math.abs(tzOffset) % 60).padStart(2, '0');
+		const localISOTime = now.getFullYear() + '-' +
+			String(now.getMonth() + 1).padStart(2, '0') + '-' +
+			String(now.getDate()).padStart(2, '0') + 'T' +
+			String(now.getHours()).padStart(2, '0') + ':' +
+			String(now.getMinutes()).padStart(2, '0') + ':' +
+			String(now.getSeconds()).padStart(2, '0') +
+			tzSign + tzHours + ':' + tzMins;
+		const savedAt = localISOTime;
 		const title = String(clip.title || '').trim() || safeTitle;
 		const body = String(clip.content || '');
 		const yamlTags = tags.length ? `\ntags:\n${formatTags(tags)}` : '\ntags: []';
-		const content = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}\n---\n\n# ${title}\n\n${body}\n`;
+		// YAML frontmatter 생성
+		const yamlFrontmatter = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}\n---`;
+
+		// 파일 내용 조합 (YAML을 맨 위로)
+		const content = `${yamlFrontmatter}\n\n# ${title}\n\n${body}\n`;
 
 		// 파일 저장
 		await saveFileToDirectory(folderHandle, fileName, content);
@@ -1973,11 +2040,82 @@ document.addEventListener('DOMContentLoaded', () => {
 		selectBtn.addEventListener('click', handleSelectDirectory);
 	}
 
-	const saveTagsBtn = document.getElementById('save-tags-btn');
-	if (saveTagsBtn) {
-		saveTagsBtn.addEventListener('click', saveDefaultTags);
-	}
+	// AI 자동 생성 버튼
+	const aiGenBtn = document.getElementById('ai-gen-btn');
+	if (aiGenBtn) {
+		aiGenBtn.addEventListener('click', async () => {
+			const statusEl = document.getElementById('save-status');
+			const titleInput = document.getElementById('clip-title');
+			const tagsInput = document.getElementById('default-tags');
 
+			try {
+				if (aiGenBtn.disabled) return;
+				aiGenBtn.disabled = true;
+				aiGenBtn.textContent = '⏳...';
+				if (statusEl) statusEl.textContent = 'AI 분석 중...';
+
+				// 1. 현재 활성 탭에서 대화 내용 추출
+				let content = '';
+				if (currentDetectedLLM === 'ChatGPT') {
+					const res = await extractChatGPTConversationFromActiveTab();
+					content = buildChatGPTMarkdownFromTurns(res.turns, null, 'temp');
+				} else if (currentDetectedLLM === 'Claude') {
+					const res = await extractClaudeConversationFromActiveTab();
+					content = buildClaudeMarkdownFromTurns(res.turns, null, 'temp');
+				} else if (currentDetectedLLM === 'Gemini') {
+					const res = await extractGeminiConversationFromActiveTab();
+					content = buildGeminiMarkdownFromTurns(res.turns, null, 'temp');
+				} else if (currentDetectedLLM === 'Grok') {
+					const res = await extractGrokConversationFromActiveTab();
+					content = buildGrokMarkdownFromTurns(res.turns, null, 'temp');
+				} else {
+					// LLM이 아니면 클립보드나 다른 소스? 일단은 LLM 페이지만 지원
+					throw new Error('지원되는 LLM 페이지가 아닙니다.');
+				}
+
+				if (!content || !content.trim()) {
+					throw new Error('분석할 대화 내용이 없습니다.');
+				}
+
+				// 2. API Key 로드
+				const apiKey = await loadApiKey();
+				if (!apiKey || !apiKey.trim()) {
+					throw new Error('API Key가 설정되지 않았습니다. 상단 설정에서 OpenAI API Key를 입력해주세요.');
+				}
+
+				// 3. OpenAI API 호출
+				const metadata = await generateMetadata(content, apiKey);
+
+				// 3. UI 적용
+				if (metadata.title && titleInput) {
+					titleInput.value = metadata.title;
+				}
+				if (metadata.tags && Array.isArray(metadata.tags) && tagsInput) {
+					tagsInput.value = metadata.tags.join(', ');
+				}
+
+				if (statusEl) {
+					statusEl.textContent = 'AI 분석 완료!';
+					statusEl.style.color = '#34a853';
+				}
+
+				// 요약 내용은? (Optional: 콘솔에 로그 or 알림)
+				if (metadata.summary) {
+					console.log('AI Summary:', metadata.summary);
+				}
+
+			} catch (error) {
+				console.error('AI Generation Failed:', error);
+				if (statusEl) {
+					statusEl.textContent = `AI 오류: ${error.message}`;
+					statusEl.style.color = '#f44336';
+				}
+			} finally {
+				aiGenBtn.disabled = false;
+				aiGenBtn.textContent = '✨ AI';
+			}
+		});
+	}
 	const clearFolderBtn = document.getElementById('clear-folder-btn');
 	if (clearFolderBtn) {
 		clearFolderBtn.addEventListener('click', () => setSelectedFolderPath([]));
@@ -2000,9 +2138,33 @@ document.addEventListener('DOMContentLoaded', () => {
 		refreshBtn.addEventListener('click', detectAndUpdateLLM);
 	}
 
-	loadDefaultTags();
+	// API Key 저장 버튼
+	const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+	if (saveApiKeyBtn) {
+		saveApiKeyBtn.addEventListener('click', async () => {
+			const inputEl = document.getElementById('openai-api-key');
+			const statusEl = document.getElementById('api-key-status');
+			if (!inputEl) return;
+
+			const key = inputEl.value.trim();
+			if (!key) {
+				alert('API Key를 입력해주세요.');
+				return;
+			}
+
+			const ok = await saveApiKey(key);
+			if (ok) {
+				await updateApiKeyStatus();
+				alert('API Key가 저장되었습니다.');
+			} else {
+				alert('API Key 저장에 실패했습니다.');
+			}
+		});
+	}
+
 	loadSelectedFolderPath();
 	loadPinnedPaths(); // 핀 목록 로드
+	updateApiKeyStatus(); // API Key 상태 초기화
 
 	// 초기화
 	initDirectory();
