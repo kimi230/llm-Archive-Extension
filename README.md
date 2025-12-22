@@ -1,8 +1,10 @@
 # 🗂️ LLM Archive Extension
 
-**Jeff Su 스타일의 LLM 대화 아카이빙 Chrome 확장 프로그램**
+[**🇺🇸 English**](README.md) | [**🇰🇷 한국어**](README_ko.md)
 
-LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하여 로컬 파일 시스템에 Markdown 파일로 저장하는 Chrome 확장 프로그램입니다. Obsidian과 호환되는 YAML frontmatter 형식을 지원합니다.
+**Jeff Su Style LLM Conversation Archiving Chrome Extension**
+
+A Chrome extension that easily extracts conversation content from LLM (Large Language Model) services and saves them to the local file system as Markdown files. Supports YAML frontmatter format compatible with Obsidian.
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285f4?style=flat-square&logo=googlechrome&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-10a37f?style=flat-square)
@@ -10,113 +12,113 @@ LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하�
 
 ---
 
-## ✨ 주요 기능
+## ✨ Key Features
 
-### 🤖 다중 LLM 지원
-현재 4개의 주요 LLM 서비스에서 대화 내용을 추출할 수 있습니다:
+### 🤖 Multi-LLM Support
+Currently supports conversation extraction from 4 major LLM services:
 
-| LLM 서비스 | 지원 여부 | 색상 코드 |
+| LLM Service | Supported | Color Code |
 |-----------|:--------:|---------|
 | **ChatGPT** (chatgpt.com, chat.openai.com) | ✅ | `#10a37f` |
 | **Claude** (claude.ai) | ✅ | `#d97757` |
 | **Gemini** (gemini.google.com) | ✅ | `#7b61ff` |
 | **Grok** (grok.com) | ✅ | `#1d9bf0` |
 
-### 💾 로컬 파일 시스템 저장
-- **File System Access API** 사용으로 브라우저에서 직접 로컬 디렉토리에 저장
-- IndexedDB를 통한 디렉토리 핸들 영구 저장
-- 권한 재확인 없이 자동 재연결
+### 💾 Local File System Storage
+- Saves directly to local directory using **File System Access API**
+- Persistent directory handle storage via IndexedDB
+- Auto-reconnect without re-prompting permissions
 
-### 📝 Obsidian 호환 Markdown
-- YAML frontmatter 메타데이터 포함
-- 이미지/비디오 자동 다운로드 및 `[98] Attachments` 폴더에 저장
-- Obsidian 내부 링크 (`![[...]]`) 및 표준 Markdown 이미지 링크 동시 지원
+### 📝 Obsidian Compatible Markdown
+- Includes YAML frontmatter metadata
+- Automatically downloads images/videos to `[98] Attachments` folder
+- Supports both Obsidian internal links (`![[...]]`) and standard Markdown image links
 
-### 🗃️ 폴더 구조 관리
-- 디렉토리 트리 시각화
-- Shift+클릭으로 저장 위치 선택
-- 기본 저장 위치: `[00] Inbox`
-- 중첩 폴더 지원
+### 🗃️ Folder Structure Management
+- Directory tree visualization
+- Shift+Click to select save location
+- Default save location: `[00] Inbox`
+- Supports nested folders
 
 ---
 
-## 📁 프로젝트 구조
+## 📁 Project Structure
 
 ```
 google_extension_practice/
-├── manifest.json          # Chrome 확장 프로그램 설정 (Manifest V3)
-├── background.js          # Service Worker - 이미지 다운로드, 사이드패널 제어
-├── sidepanel.html         # 사이드패널 UI
-├── sidepanel.js           # 핵심 로직 (1850+ lines)
-│   ├── LLM 감지 및 UI 업데이트
-│   ├── 대화 추출 (ChatGPT, Claude, Gemini, Grok)
-│   ├── HTML → Markdown 변환 (Turndown.js)
-│   ├── 미디어 다운로드 및 저장
-│   └── 디렉토리 트리 렌더링
-├── fileSystemUtils.js     # File System Access API 유틸리티
-├── content.js             # Content Script (현재 비활성화)
-├── popup.html             # 팝업 UI (테스트용)
-├── popup.js               # 팝업 스크립트
-├── turndown.min.js        # HTML to Markdown 변환 라이브러리
-└── icon.png               # 확장 프로그램 아이콘
+├── manifest.json          # Chrome Extension Configuration (Manifest V3)
+├── background.js          # Service Worker - Image downloading, sidepanel control
+├── sidepanel.html         # Sidepanel UI
+├── sidepanel.js           # Core Logic (1850+ lines)
+│   ├── LLM detection & UI update
+│   ├── Conversation extraction (ChatGPT, Claude, Gemini, Grok)
+│   ├── HTML → Markdown conversion (Turndown.js)
+│   ├── Media downloading & saving
+│   └── Directory tree rendering
+├── fileSystemUtils.js     # File System Access API Utilities
+├── content.js             # Content Script (Currently inactive)
+├── popup.html             # Popup UI (For testing)
+├── popup.js               # Popup Script
+├── turndown.min.js        # HTML to Markdown conversion library
+└── icon.png               # Extension Icon
 ```
 
 ---
 
-## 🚀 설치 방법
+## 🚀 Installation
 
-### 개발자 모드 설치
+### Developer Mode Installation
 
-1. 이 저장소를 클론하거나 다운로드합니다:
+1. Clone or download this repository:
    ```bash
    git clone https://github.com/kimi230/llm-Archive-Extension.git
    cd llm-Archive-Extension
    ```
 
-2. Chrome 브라우저에서 `chrome://extensions/` 접속
+2. Open `chrome://extensions/` in Chrome browser.
 
-3. 우측 상단의 **개발자 모드** 활성화
+3. Enable **Developer mode** in the top right corner.
 
-4. **압축해제된 확장 프로그램을 로드합니다** 클릭
+4. Click **Load unpacked**.
 
-5. `google_extension_practice` 폴더 선택
+5. Select the `llm-Archive-Extension` folder.
 
-6. 확장 프로그램 아이콘이 툴바에 추가됩니다
-
----
-
-## 📖 사용 방법
-
-### 1️⃣ 디렉토리 연결
-
-1. 확장 프로그램 아이콘 클릭 → 사이드패널 열기
-2. **📦 저장소 연결** 섹션에서 `폴더 선택` 버튼 클릭
-3. 대화를 저장할 로컬 디렉토리 선택 (예: Obsidian Vault)
-4. 브라우저 권한 요청 승인
-
-### 2️⃣ 대화 저장
-
-1. LLM 서비스 페이지 (ChatGPT, Claude, Gemini, Grok) 접속
-2. 저장하고 싶은 대화 열기
-3. 사이드패널에서 LLM 자동 감지 확인
-4. (선택) 제목 및 태그 입력
-5. **💬 [LLM명] 대화 저장** 버튼 클릭
-
-### 3️⃣ 저장 위치 변경
-
-- 디렉토리 트리에서 원하는 폴더를 **Shift+클릭**
-- 우측 상단에 선택된 경로 표시
-- `✕` 버튼으로 기본 위치(`[00] Inbox`)로 복원
-
-### 4️⃣ 클립보드 저장
-
-- **📋 클립보드** 버튼으로 복사된 텍스트를 Markdown 파일로 저장
+6. The extension icon will be added to your toolbar.
 
 ---
 
-## 📄 저장 파일 형식
+## 📖 Usage
 
-저장된 Markdown 파일은 다음과 같은 구조를 가집니다:
+### 1️⃣ Connect Directory
+
+1. Click the extension icon → Open Sidepanel.
+2. In the **📦 Storage Connection** section, click the `Select Folder` button.
+3. Select the local directory to save conversations (e.g., Obsidian Vault).
+4. Approve the browser permission request.
+
+### 2️⃣ Save Conversation
+
+1. Open an LLM service page (ChatGPT, Claude, Gemini, Grok).
+2. Open the conversation you want to save.
+3. Check if the LLM is automatically detected in the sidepanel.
+4. (Optional) Enter a title and tags.
+5. Click the **💬 Save [LLM Name] Chat** button.
+
+### 3️⃣ Change Save Location
+
+- **Shift+Click** a folder in the directory tree.
+- The selected path is displayed in the top right.
+- Click `✕` to restore the default location (`[00] Inbox`).
+
+### 4️⃣ Save Clipboard
+
+- Click the **📋 Clipboard** button to save copied text as a Markdown file.
+
+---
+
+## 📄 Saved File Format
+
+Saved Markdown files have the following structure:
 
 ```markdown
 ---
@@ -126,98 +128,98 @@ sourceUrl: "https://chatgpt.com/c/..."
 llm: "ChatGPT"
 folder: "/[00] Inbox"
 folderId: "00"
-title: "대화 제목"
+title: "Conversation Title"
 tags:
   - "AI"
-  - "프로그래밍"
+  - "Programming"
 ---
 
-# 대화 제목
+# Conversation Title
 
 ## user
 
-사용자 질문 내용...
+User question content...
 
 ---
 
 ## assistant
 
-AI 응답 내용...
+AI response content...
 
-![[첨부파일/image.png]]
+![[attachments/image.png]]
 
-![이미지](../[98] Attachments/대화제목/image.png)
+![Image](../[98] Attachments/ConversationTitle/image.png)
 
 ---
 ```
 
 ---
 
-## ⚙️ 기술 스택
+## ⚙️ Tech Stack
 
-| 분류 | 기술 |
+| Category | Technology |
 |------|-----|
-| **플랫폼** | Chrome Extension (Manifest V3) |
+| **Platform** | Chrome Extension (Manifest V3) |
 | **API** | File System Access API, Chrome Extensions API |
-| **저장소** | IndexedDB (핸들 저장), chrome.storage.local |
-| **변환** | Turndown.js (HTML → Markdown) |
-| **언어** | JavaScript (ES Modules) |
+| **Storage** | IndexedDB (Handle storage), chrome.storage.local |
+| **Conversion** | Turndown.js (HTML → Markdown) |
+| **Language** | JavaScript (ES Modules) |
 
 ---
 
-## 🔐 권한 설명
+## 🔐 Permissions
 
-| 권한 | 용도 |
+| Permission | Usage |
 |------|-----|
-| `sidePanel` | 사이드패널 UI 제공 |
-| `storage` | 설정 및 대기 중인 저장 데이터 관리 |
-| `tabs` | 현재 탭의 URL 및 LLM 감지 |
-| `scripting` | 페이지에서 대화 내용 추출 |
-| `activeTab` | 현재 활성 탭 접근 |
-| `clipboardRead` | 클립보드 내용 읽기 |
-| `host_permissions` | LLM 서비스 페이지 접근 및 이미지 다운로드 |
+| `sidePanel` | Provides Sidepanel UI |
+| `storage` | Manages settings and pending save data |
+| `tabs` | Gets current tab URL and detects LLM |
+| `scripting` | Extracts conversation content from pages |
+| `activeTab` | Accesses current active tab |
+| `clipboardRead` | Reads clipboard content |
+| `host_permissions` | Accesses LLM service pages and downloads images |
 
 ---
 
-## 🛠️ 개발
+## 🛠️ Development
 
-### 디버깅
+### Debugging
 
 ```bash
-# Chrome DevTools에서 Service Worker 디버깅
-chrome://extensions → 세부정보 → 서비스 워커 검사
+# Debug Service Worker in Chrome DevTools
+chrome://extensions → Details → Inspect views: Service Worker
 
-# 사이드패널 디버깅
-사이드패널 우클릭 → 검사
+# Debug Sidepanel
+Right-click Sidepanel → Inspect
 ```
 
-### 주요 함수
+### Key Functions
 
-| 함수 | 설명 |
+| Function | Description |
 |------|-----|
-| `detectAndUpdateLLM()` | 현재 탭의 LLM 감지 및 UI 업데이트 |
-| `saveConversationUnified()` | 통합 대화 저장 (LLM별 분기) |
-| `extractGeminiConversationFromActiveTab()` | Gemini 대화 추출 |
-| `extractChatGPTConversationFromActiveTab()` | ChatGPT 대화 추출 |
-| `extractClaudeConversationFromActiveTab()` | Claude 대화 추출 |
-| `extractGrokConversationFromActiveTab()` | Grok 대화 추출 |
-| `htmlToMarkdown()` | Turndown.js를 사용한 HTML→MD 변환 |
-| `downloadImageFromBackground()` | Background script를 통한 이미지 다운로드 |
-| `saveClipToFileSystem()` | 파일 시스템에 클립 저장 |
-| `renderDirectoryTree()` | 디렉토리 트리 UI 렌더링 |
+| `detectAndUpdateLLM()` | Detects current tab's LLM and updates UI |
+| `saveConversationUnified()` | Unified conversation saving (Branches by LLM) |
+| `extractGeminiConversationFromActiveTab()` | Extracts Gemini conversation |
+| `extractChatGPTConversationFromActiveTab()` | Extracts ChatGPT conversation |
+| `extractClaudeConversationFromActiveTab()` | Extracts Claude conversation |
+| `extractGrokConversationFromActiveTab()` | Extracts Grok conversation |
+| `htmlToMarkdown()` | Converts HTML → MD using Turndown.js |
+| `downloadImageFromBackground()` | Downloads images via Background script |
+| `saveClipToFileSystem()` | Saves clipboard content to file system |
+| `renderDirectoryTree()` | Renders directory tree UI |
 
 ---
 
-## 📝 라이선스
+## 📝 License
 
-이 프로젝트는 개인 사용 목적으로 개발되었습니다.
+This project was developed for personal use.
 
 ---
 
-## 🙏 크레딧
+## 🙏 Credits
 
-- [Turndown.js](https://github.com/mixmark-io/turndown) - HTML to Markdown 변환
-- [Jeff Su](https://www.youtube.com/@JeffSu) - 아카이빙 워크플로우 영감
+- [Turndown.js](https://github.com/mixmark-io/turndown) - HTML to Markdown conversion
+- [Jeff Su](https://www.youtube.com/@JeffSu) - Archiving workflow inspiration
 
 ---
 

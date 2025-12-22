@@ -1656,6 +1656,8 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 		setSelectedFolderPath(path);
 	});
 
+	details.appendChild(summary);
+
 	const children = document.createElement('div');
 	children.style.marginLeft = '14px';
 	children.style.borderLeft = '1px solid #eee';

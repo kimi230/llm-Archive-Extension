@@ -5,10 +5,10 @@
 async function getDB() {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open('llmArchiveDB', 1);
-		
+
 		request.onerror = () => reject(request.error);
 		request.onsuccess = () => resolve(request.result);
-		
+
 		request.onupgradeneeded = (event) => {
 			const db = event.target.result;
 			if (!db.objectStoreNames.contains('fileHandles')) {
@@ -23,19 +23,19 @@ async function chooseAndStoreDirectory() {
 	try {
 		// 사용자 제스처로 디렉토리 선택
 		const dirHandle = await window.showDirectoryPicker();
-		
+
 		// 권한 요청 (처음에 3-way prompt 나타남)
 		const permission = await dirHandle.requestPermission({ mode: 'readwrite' });
-		
+
 		if (permission !== 'granted') {
 			throw new Error('Permission denied');
 		}
-		
+
 		// IndexedDB에 핸들 저장
 		const db = await getDB();
 		const transaction = db.transaction('fileHandles', 'readwrite');
 		await transaction.objectStore('fileHandles').put(dirHandle, 'archiveDir');
-		
+
 		return dirHandle;
 	} catch (error) {
 		console.error('디렉토리 선택 실패:', error);
@@ -53,14 +53,14 @@ async function loadAndVerifyDirectory() {
 			request.onsuccess = () => resolve(request.result);
 			request.onerror = () => reject(request.error);
 		});
-		
+
 		if (!dirHandle) {
 			return null;
 		}
-		
+
 		// 권한 상태 확인
 		const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
-		
+
 		if (permission === 'prompt') {
 			// 사용자 제스처 필요 (e.g., 버튼 클릭 후)
 			// 이 함수는 사용자 제스처 컨텍스트에서 호출되어야 함
@@ -73,7 +73,7 @@ async function loadAndVerifyDirectory() {
 			console.error('Permission denied');
 			return null;
 		}
-		
+
 		// 권한 OK면 디렉토리 핸들 반환
 		return dirHandle;
 	} catch (error) {
@@ -92,11 +92,11 @@ async function checkDirectoryPermission() {
 			request.onsuccess = () => resolve(request.result);
 			request.onerror = () => reject(request.error);
 		});
-		
+
 		if (!dirHandle) {
 			return { exists: false, permission: null };
 		}
-		
+
 		const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
 		return { exists: true, permission, dirHandle };
 	} catch (error) {
