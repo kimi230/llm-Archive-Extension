@@ -8,7 +8,7 @@ A Chrome extension that easily extracts conversation content from LLM (Large Lan
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285f4?style=flat-square&logo=googlechrome&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-10a37f?style=flat-square)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.0.1-blue?style=flat-square)
 
 ---
 
@@ -34,7 +34,17 @@ Currently supports conversation extraction from 4 major LLM services:
 - Automatically downloads images/videos to `[98] Attachments` folder
 - Supports both Obsidian internal links (`![[...]]`) and standard Markdown image links
 
-### 🗃️ Folder Structure Management
+### ✨ AI Metadata Generation
+- One-click title, tags, and summary generation using **OpenAI API (GPT-4o-mini)**
+- Structured JSON schema output
+- User-provided API key (stored locally)
+
+### � Pin System
+- Pin up to 5 frequently used folders
+- Quick access to pinned locations
+- Persistent storage across sessions
+
+### �🗃️ Folder Structure Management
 - Directory tree visualization
 - Shift+Click to select save location
 - Default save location: `[00] Inbox`
@@ -45,22 +55,25 @@ Currently supports conversation extraction from 4 major LLM services:
 ## 📁 Project Structure
 
 ```
-google_extension_practice/
-├── manifest.json          # Chrome Extension Configuration (Manifest V3)
-├── background.js          # Service Worker - Image downloading, sidepanel control
-├── sidepanel.html         # Sidepanel UI
-├── sidepanel.js           # Core Logic (1850+ lines)
+llm-Archive-Extension/
+├── manifest.json              # Chrome Extension Configuration (Manifest V3)
+├── background.js              # Service Worker - Image downloading, sidepanel control
+├── sidepanel.html             # Sidepanel UI
+├── sidepanel.js               # Core Logic (2200+ lines)
 │   ├── LLM detection & UI update
 │   ├── Conversation extraction (ChatGPT, Claude, Gemini, Grok)
 │   ├── HTML → Markdown conversion (Turndown.js)
 │   ├── Media downloading & saving
+│   ├── Pin management
 │   └── Directory tree rendering
-├── fileSystemUtils.js     # File System Access API Utilities
-├── content.js             # Content Script (Currently inactive)
-├── popup.html             # Popup UI (For testing)
-├── popup.js               # Popup Script
-├── turndown.min.js        # HTML to Markdown conversion library
-└── icon.png               # Extension Icon
+├── fileSystemUtils.js         # File System Access API Utilities
+├── openaiUtils.js             # OpenAI API integration for AI metadata generation
+├── content.js                 # Content Script (Currently inactive)
+├── popup.html                 # Popup UI (For testing)
+├── popup.js                   # Popup Script
+├── turndown.min.js            # HTML to Markdown conversion library
+├── PERMISSION_JUSTIFICATION.md # Chrome Web Store permission justification
+└── icon.png                   # Extension Icon
 ```
 
 ---
@@ -160,9 +173,10 @@ AI response content...
 | Category | Technology |
 |------|-----|
 | **Platform** | Chrome Extension (Manifest V3) |
-| **API** | File System Access API, Chrome Extensions API |
+| **API** | File System Access API, Chrome Extensions API, OpenAI API |
 | **Storage** | IndexedDB (Handle storage), chrome.storage.local |
 | **Conversion** | Turndown.js (HTML → Markdown) |
+| **AI** | OpenAI GPT-4o-mini (Metadata generation) |
 | **Language** | JavaScript (ES Modules) |
 
 ---

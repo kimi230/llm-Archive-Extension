@@ -8,7 +8,7 @@ LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하�
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285f4?style=flat-square&logo=googlechrome&logoColor=white)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-10a37f?style=flat-square)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.0.1-blue?style=flat-square)
 
 ---
 
@@ -34,6 +34,16 @@ LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하�
 - 이미지/비디오 자동 다운로드 및 `[98] Attachments` 폴더에 저장
 - Obsidian 내부 링크 (`![[...]]`) 및 표준 Markdown 이미지 링크 동시 지원
 
+### ✨ AI 메타데이터 자동 생성
+- **OpenAI API (GPT-4o-mini)**를 활용한 원클릭 제목/태그/요약 생성
+- 구조화된 JSON 스키마 출력
+- 사용자 API Key 사용 (로컬 저장)
+
+### 📌 핀(Pin) 시스템
+- 자주 사용하는 폴더 최대 5개 고정
+- 핀된 위치 빠른 접근
+- 세션 간 영구 저장
+
 ### 🗃️ 폴더 구조 관리
 - 디렉토리 트리 시각화
 - Shift+클릭으로 저장 위치 선택
@@ -45,22 +55,25 @@ LLM(Large Language Model) 서비스에서 대화 내용을 손쉽게 추출하�
 ## 📁 프로젝트 구조
 
 ```
-google_extension_practice/
-├── manifest.json          # Chrome 확장 프로그램 설정 (Manifest V3)
-├── background.js          # Service Worker - 이미지 다운로드, 사이드패널 제어
-├── sidepanel.html         # 사이드패널 UI
-├── sidepanel.js           # 핵심 로직 (1850+ lines)
+llm-Archive-Extension/
+├── manifest.json              # Chrome 확장 프로그램 설정 (Manifest V3)
+├── background.js              # Service Worker - 이미지 다운로드, 사이드패널 제어
+├── sidepanel.html             # 사이드패널 UI
+├── sidepanel.js               # 핵심 로직 (2200+ lines)
 │   ├── LLM 감지 및 UI 업데이트
 │   ├── 대화 추출 (ChatGPT, Claude, Gemini, Grok)
 │   ├── HTML → Markdown 변환 (Turndown.js)
 │   ├── 미디어 다운로드 및 저장
+│   ├── 핀 관리
 │   └── 디렉토리 트리 렌더링
-├── fileSystemUtils.js     # File System Access API 유틸리티
-├── content.js             # Content Script (현재 비활성화)
-├── popup.html             # 팝업 UI (테스트용)
-├── popup.js               # 팝업 스크립트
-├── turndown.min.js        # HTML to Markdown 변환 라이브러리
-└── icon.png               # 확장 프로그램 아이콘
+├── fileSystemUtils.js         # File System Access API 유틸리티
+├── openaiUtils.js             # OpenAI API 연동 (AI 메타데이터 생성)
+├── content.js                 # Content Script (현재 비활성화)
+├── popup.html                 # 팝업 UI (테스트용)
+├── popup.js                   # 팝업 스크립트
+├── turndown.min.js            # HTML to Markdown 변환 라이브러리
+├── PERMISSION_JUSTIFICATION.md # Chrome 웹 스토어 권한 정당화 문서
+└── icon.png                   # 확장 프로그램 아이콘
 ```
 
 ---
@@ -160,9 +173,10 @@ AI 응답 내용...
 | 분류 | 기술 |
 |------|-----|
 | **플랫폼** | Chrome Extension (Manifest V3) |
-| **API** | File System Access API, Chrome Extensions API |
+| **API** | File System Access API, Chrome Extensions API, OpenAI API |
 | **저장소** | IndexedDB (핸들 저장), chrome.storage.local |
 | **변환** | Turndown.js (HTML → Markdown) |
+| **AI** | OpenAI GPT-4o-mini (메타데이터 생성) |
 | **언어** | JavaScript (ES Modules) |
 
 ---
