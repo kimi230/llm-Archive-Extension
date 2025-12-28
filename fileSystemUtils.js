@@ -24,14 +24,19 @@ async function chooseAndStoreDirectory() {
 		if (typeof window.showDirectoryPicker !== 'function') {
 			throw new Error('이 브라우저는 Directory System API를 지원하지 않습니다.');
 		}
-		// 사용자 제스처로 디렉토리 선택
-		const dirHandle = await window.showDirectoryPicker();
+		// 사용자 제스처로 디렉토리 선택 (readwrite 권한 함께 요청)
+		const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
 
-		// 권한 요청 (처음에 3-way prompt 나타남)
-		const permission = await dirHandle.requestPermission({ mode: 'readwrite' });
+		// 권한 확인 (이미 위에서 readwrite로 요청했으므로 granted일 가능성 높음)
+		// 일부 브라우저에서는 명시적 확인이 필요할 수 있음
+		const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
 
 		if (permission !== 'granted') {
-			throw new Error('Permission denied');
+			// 혹시라도 권한이 없다면 요청 (이 시점에서 user activation이 만료되었을 수 있으므로 주의)
+			const requestResult = await dirHandle.requestPermission({ mode: 'readwrite' });
+			if (requestResult !== 'granted') {
+				throw new Error('Permission denied');
+			}
 		}
 
 		// IndexedDB에 핸들 저장

@@ -43,48 +43,224 @@
       margin-top: 20px;
       border-top: 1px solid #eee;
     }
+
+    /* Lucide-style line icons */
+    .icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .icon-sm {
+      width: 14px;
+      height: 14px;
+    }
+
+    .icon-lg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-header .icon {
+      color: #555;
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-icon .icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Settings panel styles */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .settings-toggle {
+      background: transparent;
+      border: 1px solid #ddd;
+      padding: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .settings-toggle:hover {
+      background: #f0f0f0;
+      border-color: #bbb;
+    }
+
+    .settings-toggle.active {
+      background: #e8f0fe;
+      border-color: #4285f4;
+      color: #4285f4;
+    }
+
+    .settings-panel {
+      display: none;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      overflow: hidden;
+      animation: slideDown 0.2s ease;
+    }
+
+    .settings-panel.open {
+      display: block;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .settings-section {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .settings-section:last-child {
+      border-bottom: none;
+    }
+
+    .settings-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      font-size: 0.75em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #f0f0f0;
+    }
+
+    .status-badge.connected {
+      background: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .status-badge.disconnected {
+      background: #fce8e6;
+      color: #d93025;
+    }
+
+    .status-badge.warning {
+      background: #fef7e0;
+      color: #f9ab00;
+    }
   </style>
 </head>
 
 <body>
-  <h3>🗂️ LLM Archive</h3>
-
-  <div style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-      <strong>⚙️ API 설정</strong>
-      <span id="api-key-status" style="font-size: 0.8em; color: #888;">확인 중...</span>
-    </div>
-    <div style="display: flex; gap: 6px; align-items: center;">
-      <input id="openai-api-key" type="password" placeholder="OpenAI API Key (sk-...)"
-        style="flex: 1; padding: 6px; box-sizing: border-box; font-size: 0.85em;">
-      <button id="save-api-key-btn"
-        style="background: #10a37f; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">저장</button>
-    </div>
-    <div style="margin-top: 6px; font-size: 0.75em; color: #888;">
-      <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #4285f4;">OpenAI에서 API Key 발급받기 →</a>
-    </div>
+  <!-- App Header with Settings Toggle -->
+  <div class="app-header">
+    <h3 class="section-header" style="margin: 0;">
+      <span class="icon icon-lg"><svg viewBox="0 0 24 24">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          <line x1="9" y1="14" x2="15" y2="14" />
+        </svg></span>
+      LLM Archive
+    </h3>
+    <button id="settings-toggle-btn" class="settings-toggle" title="설정">
+      <span class="icon"><svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg></span>
+    </button>
   </div>
 
-  <div style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <strong>📦 저장소 연결</strong>
-        <span id="dir-status" style="font-size: 0.8em; color: #888;">로딩 중...</span>
+  <!-- Collapsible Settings Panel -->
+  <div id="settings-panel" class="settings-panel">
+    <!-- API Settings Section -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <strong class="section-header"><span class="icon icon-sm"><svg viewBox="0 0 24 24">
+              <path
+                d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+            </svg></span> API Key</strong>
+        <span id="api-key-status" class="status-badge">확인 중...</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <input id="openai-api-key" type="password" placeholder="OpenAI API Key (sk-...)"
+          style="flex: 1; padding: 6px; box-sizing: border-box; font-size: 0.85em; border: 1px solid #ddd; border-radius: 4px;">
+        <button id="save-api-key-btn"
+          style="background: #10a37f; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">저장</button>
+      </div>
+      <div style="margin-top: 6px; font-size: 0.75em; color: #888;">
+        <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #4285f4;">OpenAI에서 API Key 발급받기
+          →</a>
+      </div>
+    </div>
+
+    <!-- Directory Connection Section -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <strong class="section-header"><span class="icon icon-sm"><svg viewBox="0 0 24 24">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg></span> 저장소</strong>
+        <span id="dir-status" class="status-badge">로딩 중...</span>
       </div>
       <button id="select-dir-btn"
-        style="background: #4285f4; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">폴더
+        style="width: 100%; background: #4285f4; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">폴더
         선택</button>
     </div>
   </div>
 
   <div class="pin-section">
-    <strong>📌 핀 (0/5)</strong>
+    <strong class="section-header"><span class="icon" id="pin-header-icon"><svg viewBox="0 0 24 24">
+          <path d="M12 17v5" />
+          <path
+            d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76z" />
+        </svg></span> <span id="pin-header-text">핀 (0/5)</span></strong>
     <div id="pin-list" style="font-size: 0.9em; color: #555;">핀된 항목이 없습니다.</div>
   </div>
 
   <div class="pin-section">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-      <strong>📂 디렉토리 트리</strong>
+      <strong class="section-header"><span class="icon"><svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg></span> 디렉토리 트리</strong>
       <div style="display: flex; align-items: center; gap: 6px;">
         <span id="selected-folder" style="font-size: 0.8em; color: #666;">저장 위치: (미선택)</span>
         <button id="clear-folder-btn"
@@ -96,7 +272,12 @@
         <input id="clip-title" type="text" placeholder="제목 (비우면 자동)"
           style="flex: 1; padding: 6px; box-sizing: border-box;">
         <button id="ai-gen-btn" title="AI로 제목/태그/요약 자동 생성"
-          style="background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">✨
+          style="background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em;"
+          class="btn-icon">
+          <span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg></span>
           AI</button>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
@@ -112,17 +293,32 @@
             style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; margin-right: 6px; flex-shrink: 0;"></span>
           <span id="llm-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">LLM 감지 중...</span>
         </div>
-        <button id="save-conversation-btn"
+        <button id="save-conversation-btn" class="btn-icon"
           style="background: #4285f4; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; white-space: nowrap;"
           disabled>
-          💬 저장
+          <span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg></span>
+          저장
         </button>
-        <button id="save-clipboard-btn"
+        <button id="save-clipboard-btn" class="btn-icon"
           style="background: #666; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; white-space: nowrap;">
-          📋 클립
+          <span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg></span>
+          클립
         </button>
         <button id="refresh-detection-btn"
-          style="background: transparent; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">🔄</button>
+          style="background: transparent; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; display: inline-flex; align-items: center; justify-content: center;">
+          <span class="icon icon-sm"><svg viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg></span>
+        </button>
       </div>
       <div id="save-status" style="margin-top: 8px; font-size: 0.85em; color: #888;"></div>
     </div>

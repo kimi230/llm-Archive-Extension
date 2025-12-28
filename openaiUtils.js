@@ -69,7 +69,15 @@ Your task is to generate a concise title, a brief summary, and relevant tags for
             throw new Error(`OpenAI API Error: ${errorData.error?.message || response.statusText}`);
         }
 
-        const data = await response.json();
+        const dataText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(dataText);
+        } catch (e) {
+            console.error('Failed to parse API response as JSON:', dataText.slice(0, 200));
+            throw new Error(`API response is not valid JSON. Response starts with: ${dataText.slice(0, 50)}`);
+        }
+
         const result = JSON.parse(data.choices[0].message.content);
         return result;
 

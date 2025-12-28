@@ -45,12 +45,12 @@ async function updateApiKeyStatus() {
 
 	const key = await loadApiKey();
 	if (key && key.trim()) {
-		statusEl.textContent = '✅ 설정됨';
-		statusEl.style.color = '#34a853';
+		statusEl.textContent = '설정됨';
+		statusEl.className = 'status-badge connected';
 		if (inputEl) inputEl.value = key;
 	} else {
-		statusEl.textContent = '❌ 미설정';
-		statusEl.style.color = '#f44336';
+		statusEl.textContent = '미설정';
+		statusEl.className = 'status-badge disconnected';
 	}
 }
 
@@ -1526,10 +1526,10 @@ async function togglePin(pathSegments) {
 
 function renderPinList() {
 	const pinListEl = document.getElementById('pin-list');
-	const headerEl = document.querySelector('.pin-section strong'); // "📌 핀 (0/5)" 영역
+	const headerTextEl = document.getElementById('pin-header-text');
 
-	if (headerEl) {
-		headerEl.textContent = `📌 핀 (${pinnedPaths.length}/${MAX_PINS})`;
+	if (headerTextEl) {
+		headerTextEl.textContent = `핀 (${pinnedPaths.length}/${MAX_PINS})`;
 	}
 
 	if (!pinListEl) return;
@@ -1554,8 +1554,9 @@ function renderPinList() {
 		left.style.overflow = 'hidden';
 
 		const icon = document.createElement('span');
-		icon.textContent = '📁 ';
+		icon.className = 'icon icon-sm';
 		icon.style.marginRight = '5px';
+		icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
 
 		const text = document.createElement('span');
 		text.textContent = path.join('/');
@@ -1626,7 +1627,22 @@ async function listDirectoryEntries(dirHandle, maxEntries) {
 function createTreeFileNode(name) {
 	const el = document.createElement('div');
 	el.style.padding = '3px 0 3px 16px';
-	el.textContent = `📄 ${name}`;
+	el.style.display = 'flex';
+	el.style.alignItems = 'center';
+	el.style.gap = '4px';
+
+	const icon = document.createElement('span');
+	icon.className = 'icon icon-sm';
+	icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+	const nameSpan = document.createElement('span');
+	nameSpan.textContent = name;
+	nameSpan.style.whiteSpace = 'nowrap';
+	nameSpan.style.overflow = 'hidden';
+	nameSpan.style.textOverflow = 'ellipsis';
+
+	el.appendChild(icon);
+	el.appendChild(nameSpan);
 	return el;
 }
 
@@ -1651,8 +1667,9 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 	labelGroup.style.overflow = 'hidden';
 
 	const iconMap = document.createElement('span');
-	iconMap.textContent = '📁 ';
+	iconMap.className = 'icon icon-sm';
 	iconMap.style.marginRight = '4px';
+	iconMap.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
 
 	const nameSpan = document.createElement('span');
 	nameSpan.textContent = name;
@@ -1667,16 +1684,17 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 	// 핀 버튼 (우측)
 	const pinBtn = document.createElement('span');
 	const pinned = isPinned(pathSegments);
-	pinBtn.textContent = pinned ? '📌' : '📍';
+	pinBtn.className = 'icon icon-sm';
+	pinBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76z"/></svg>';
 	pinBtn.style.cursor = 'pointer';
 	pinBtn.style.marginLeft = '5px';
-	pinBtn.style.opacity = pinned ? '1' : '0.3';
-	pinBtn.style.fontSize = '0.9em';
+	pinBtn.style.opacity = pinned ? '1' : '0.4';
+	pinBtn.style.color = pinned ? '#4285f4' : '#888';
 	pinBtn.title = pinned ? '핀 해제' : '핀 고정';
 
 	// Hover 효과
-	pinBtn.onmouseenter = () => { if (!isPinned(pathSegments)) pinBtn.style.opacity = '1'; };
-	pinBtn.onmouseleave = () => { if (!isPinned(pathSegments)) pinBtn.style.opacity = '0.3'; };
+	pinBtn.onmouseenter = () => { if (!isPinned(pathSegments)) { pinBtn.style.opacity = '1'; pinBtn.style.color = '#4285f4'; } };
+	pinBtn.onmouseleave = () => { if (!isPinned(pathSegments)) { pinBtn.style.opacity = '0.4'; pinBtn.style.color = '#888'; } };
 
 	pinBtn.onclick = (e) => {
 		e.preventDefault();
@@ -1828,9 +1846,9 @@ async function initDirectory() {
 		if (exists && permission === 'granted') {
 			// 권한이 이미 부여됨 - 바로 사용 가능
 			currentDirHandle = dirHandle;
-			statusDiv.textContent = '✅ 연결됨';
-			statusDiv.style.color = '#4A90D9';
-			selectBtn.textContent = '디렉토리 변경';
+			statusDiv.textContent = '연결됨';
+			statusDiv.className = 'status-badge connected';
+			selectBtn.textContent = '변경';
 
 			// 대기 중인 파일 저장 처리
 			processPendingFileSaves();
@@ -1838,23 +1856,23 @@ async function initDirectory() {
 			loadSelectedFolderPath();
 		} else if (exists && permission === 'prompt') {
 			// 권한이 만료됨 - 사용자 제스처 필요
-			statusDiv.textContent = '⚠️ 권한 재확인 필요';
-			statusDiv.style.color = '#ff9800';
+			statusDiv.textContent = '권한 필요';
+			statusDiv.className = 'status-badge warning';
 			selectBtn.textContent = '권한 재확인';
 			renderDirectoryTree(null);
 			loadSelectedFolderPath();
 		} else {
 			// 디렉토리가 선택되지 않음
-			statusDiv.textContent = '❌ 디렉토리 미선택';
-			statusDiv.style.color = '#f44336';
-			selectBtn.textContent = '디렉토리 선택';
+			statusDiv.textContent = '미연결';
+			statusDiv.className = 'status-badge disconnected';
+			selectBtn.textContent = '폴더 선택';
 			renderDirectoryTree(null);
 			loadSelectedFolderPath();
 		}
 	} catch (error) {
 		console.error('초기화 실패:', error);
-		statusDiv.textContent = '❌ 오류 발생';
-		statusDiv.style.color = '#f44336';
+		statusDiv.textContent = '오류';
+		statusDiv.className = 'status-badge disconnected';
 		renderDirectoryTree(null);
 		loadSelectedFolderPath();
 	}
@@ -1905,15 +1923,16 @@ async function handleSelectDirectory() {
 	try {
 		selectBtn.disabled = true;
 		statusDiv.textContent = '처리 중...';
+		statusDiv.className = 'status-badge';
 
 		// 사용자 제스처 컨텍스트에서 바로 디렉토리 선택 (await 없이)
 		// 비동기 작업 후 user activation이 만료되므로 바로 호출
 		currentDirHandle = await chooseAndStoreDirectory();
 
 		if (currentDirHandle) {
-			statusDiv.textContent = '✅ 연결됨';
-			statusDiv.style.color = '#34a853';
-			selectBtn.textContent = '폴더 변경';
+			statusDiv.textContent = '연결됨';
+			statusDiv.className = 'status-badge connected';
+			selectBtn.textContent = '변경';
 
 			// 대기 중인 파일 저장 처리
 			processPendingFileSaves();
@@ -1930,10 +1949,10 @@ async function handleSelectDirectory() {
 
 		if (errName === 'AbortError') {
 			statusDiv.textContent = '취소됨';
-			statusDiv.style.color = '#888';
+			statusDiv.className = 'status-badge';
 		} else {
-			statusDiv.textContent = `❌ ${fullMsg}`;
-			statusDiv.style.color = '#f44336';
+			statusDiv.textContent = '오류';
+			statusDiv.className = 'status-badge disconnected';
 		}
 	} finally {
 		selectBtn.disabled = false;
@@ -1991,31 +2010,8 @@ async function saveClipToFileSystem(clip) {
 			fileName = `${timestamp}.md`;
 		}
 
-		// 메타데이터 + 본문(Markdown) 생성 (YAML frontmatter를 맨 아래로)
-		const llm = detectLLMFromUrl(clip.sourceUrl);
-		// 로컬 시간 형식으로 변환 (예: 2025-12-23T01:13:31+09:00)
-		const now = new Date();
-		const tzOffset = -now.getTimezoneOffset();
-		const tzSign = tzOffset >= 0 ? '+' : '-';
-		const tzHours = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
-		const tzMins = String(Math.abs(tzOffset) % 60).padStart(2, '0');
-		const localISOTime = now.getFullYear() + '-' +
-			String(now.getMonth() + 1).padStart(2, '0') + '-' +
-			String(now.getDate()).padStart(2, '0') + 'T' +
-			String(now.getHours()).padStart(2, '0') + ':' +
-			String(now.getMinutes()).padStart(2, '0') + ':' +
-			String(now.getSeconds()).padStart(2, '0') +
-			tzSign + tzHours + ':' + tzMins;
-		const savedAt = localISOTime;
-		const title = String(clip.title || '').trim() || safeTitle;
-		const body = String(clip.content || '');
-		const yamlTags = tags.length ? `\ntags:\n${formatTags(tags)}` : '\ntags: []';
-		const yamlSummary = clip.summary ? `\nsummary: ${yamlQuote(clip.summary)}` : '';
-		// YAML frontmatter 생성
-		const yamlFrontmatter = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}${yamlSummary}\n---`;
-
-		// 파일 내용 조합 (YAML을 맨 위로)
-		const content = `${yamlFrontmatter}\n\n# ${title}\n\n${body}\n`;
+		// 메타데이터 + 본문(Markdown) 생성
+		const content = createMarkdownContent(clip, tags, folderPathLabel, safeTitle);
 
 		// 파일 저장
 		await saveFileToDirectory(folderHandle, fileName, content);
@@ -2078,8 +2074,15 @@ document.addEventListener('DOMContentLoaded', () => {
 					const res = await extractGrokConversationFromActiveTab();
 					content = buildGrokMarkdownFromTurns(res.turns, null, 'temp');
 				} else {
-					// LLM이 아니면 클립보드나 다른 소스? 일단은 LLM 페이지만 지원
-					throw new Error('지원되는 LLM 페이지가 아닙니다.');
+					// 지원되지 않는 페이지: 에러가 아닌 상태 안내로 처리
+					console.info('AI 분석: 현재 페이지는 지원 대상이 아닙니다.');
+					if (statusEl) {
+						statusEl.textContent = '지원되는 LLM 페이지에서 이용해 주세요 (ChatGPT, Claude, Gemini, Grok)';
+						statusEl.style.color = '#888';
+					}
+					aiGenBtn.disabled = false;
+					aiGenBtn.innerHTML = '<span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> AI';
+					return; // 에러를 던지지 않고 조기 반환
 				}
 
 				if (!content || !content.trim()) {
@@ -2122,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			} finally {
 				aiGenBtn.disabled = false;
-				aiGenBtn.textContent = '✨ AI';
+				aiGenBtn.innerHTML = '<span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> AI';
 			}
 		});
 	}
@@ -2176,6 +2179,16 @@ document.addEventListener('DOMContentLoaded', () => {
 	loadPinnedPaths(); // 핀 목록 로드
 	updateApiKeyStatus(); // API Key 상태 초기화
 
+	// 설정 패널 토글 버튼
+	const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+	const settingsPanel = document.getElementById('settings-panel');
+	if (settingsToggleBtn && settingsPanel) {
+		settingsToggleBtn.addEventListener('click', () => {
+			const isOpen = settingsPanel.classList.toggle('open');
+			settingsToggleBtn.classList.toggle('active', isOpen);
+		});
+	}
+
 	// 초기화
 	initDirectory();
 
@@ -2194,5 +2207,32 @@ document.addEventListener('DOMContentLoaded', () => {
 // 현재 디렉토리 핸들 반환 (다른 모듈에서 사용)
 export function getCurrentDirHandle() {
 	return currentDirHandle;
+}
+
+function createMarkdownContent(clip, tags, folderPathLabel, safeTitle) {
+	const llm = detectLLMFromUrl(clip.sourceUrl);
+	// 로컬 시간 형식으로 변환 (예: 2025-12-23T01:13:31+09:00)
+	const now = new Date();
+	const tzOffset = -now.getTimezoneOffset();
+	const tzSign = tzOffset >= 0 ? '+' : '-';
+	const tzHours = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
+	const tzMins = String(Math.abs(tzOffset) % 60).padStart(2, '0');
+	const localISOTime = now.getFullYear() + '-' +
+		String(now.getMonth() + 1).padStart(2, '0') + '-' +
+		String(now.getDate()).padStart(2, '0') + 'T' +
+		String(now.getHours()).padStart(2, '0') + ':' +
+		String(now.getMinutes()).padStart(2, '0') + ':' +
+		String(now.getSeconds()).padStart(2, '0') +
+		tzSign + tzHours + ':' + tzMins;
+	const savedAt = localISOTime;
+	const title = String(clip.title || '').trim() || safeTitle;
+	const body = String(clip.content || '');
+	const yamlTags = tags.length ? `\ntags:\n${formatTags(tags)}` : '\ntags: []';
+	const yamlSummary = clip.summary ? `\nsummary: ${yamlQuote(clip.summary)}` : '';
+	// YAML frontmatter 생성
+	const yamlFrontmatter = `---\nsavedAt: ${yamlQuote(savedAt)}\ncreatedAt: ${yamlQuote(clip.createdAt)}\nsourceUrl: ${yamlQuote(clip.sourceUrl)}\nllm: ${yamlQuote(llm)}\nfolder: ${yamlQuote(folderPathLabel)}\nfolderId: ${yamlQuote(clip.folderId)}\ntitle: ${yamlQuote(title)}${yamlTags}${yamlSummary}\n---`;
+
+	// 파일 내용 조합 (YAML을 맨 위로)
+	return `${yamlFrontmatter}\n\n# ${title}\n\n${body}\n`;
 }
 
