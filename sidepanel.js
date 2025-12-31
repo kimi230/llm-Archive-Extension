@@ -7,7 +7,7 @@ import {
 	getOrCreateSubfolder,
 	getOrCreateNestedSubfolder
 } from './fileSystemUtils.js';
-import { generateMetadata } from './openaiUtils.js';
+import { generateMetadata, planExtraction, writeExtraction } from './openaiUtils.js';
 
 
 let currentDirHandle = null;
@@ -16,6 +16,10 @@ let pinnedPaths = [];        // 핀된 경로 목록 (배열의 배열)
 
 // 핀 최대 개수
 const MAX_PINS = 5;
+
+// 추출 파이프라인 상태
+let currentExtractionPlan = null;
+let currentConversationContent = null;
 
 // API Key 관련 함수
 async function loadApiKey() {
@@ -177,14 +181,14 @@ async function detectAndUpdateLLM() {
 			if (saveBtn) {
 				saveBtn.disabled = true;
 				saveBtn.style.background = '#ccc';
-				saveBtn.textContent = '💬 저장';
+				saveBtn.textContent = '저장';
 			}
 		} else {
 			if (nameEl) nameEl.textContent = `${currentDetectedLLM} 감지됨`;
 			if (saveBtn) {
 				saveBtn.disabled = false;
 				saveBtn.style.background = color;
-				saveBtn.textContent = `💬 저장`;
+				saveBtn.textContent = `저장`;
 			}
 		}
 	} catch (error) {
@@ -205,6 +209,7 @@ async function detectAndUpdateLLM() {
 async function saveConversationUnified() {
 	const statusEl = document.getElementById('save-status');
 	const saveBtn = document.getElementById('save-conversation-btn');
+	const multiFileMode = document.getElementById('multi-file-mode')?.checked;
 
 	const setStatus = (text, color) => {
 		if (statusEl) {
@@ -212,6 +217,12 @@ async function saveConversationUnified() {
 			statusEl.style.color = color || '#888';
 		}
 	};
+
+	// 내용정리 모드(글 여러개 저장)가 켜져 있으면 추출 파이프라인 시작
+	if (multiFileMode) {
+		await startExtractionPipeline();
+		return;
+	}
 
 	if (saveBtn) saveBtn.disabled = true;
 
@@ -422,7 +433,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const video of t.videos) {
 				if (video.role === 'user' && mediaMap && mediaMap[video.src]) {
 					const { fileName } = mediaMap[video.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -442,7 +453,7 @@ function buildGeminiMarkdownFromTurns(turns, mediaMap, mediaFolderName) {
 			for (const video of t.videos) {
 				if (video.role === 'assistant' && mediaMap && mediaMap[video.src]) {
 					const { fileName } = mediaMap[video.src];
-					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[🎬 Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
+					blocks.push(`![[${mediaFolderName}/${fileName}]]\n\n[Video](../98. Attachments/${mediaFolderName}/${fileName})\n\n`);
 				}
 			}
 		}
@@ -1453,15 +1464,35 @@ function updateSelectedFolderUI() {
 	const el = document.getElementById('selected-folder');
 	if (!el) return;
 	if (!selectedFolderPath || selectedFolderPath.length === 0) {
-		el.textContent = '저장 위치: /00. Inbox (기본) — 트리에서 폴더를 Shift+클릭';
+		el.textContent = '저장 위치: /00. Inbox (기본) — 트리에서 폴더 클릭';
 		return;
 	}
 	el.textContent = `저장 위치: /${selectedFolderPath.join('/')}`;
 }
 
+/**
+ * 선택된 폴더를 트리에서 시각적으로 하이라이트
+ */
+function updateSelectedFolderHighlight(pathSegments) {
+	// 기존 선택 해제
+	document.querySelectorAll('.folder-label.folder-selected').forEach(el => {
+		el.classList.remove('folder-selected');
+	});
+
+	// 새 선택 표시
+	if (!pathSegments || pathSegments.length === 0) return;
+
+	const pathStr = pathSegments.join('/');
+	const targetLabel = document.querySelector(`.folder-label[data-folder-path="${pathStr}"]`);
+	if (targetLabel) {
+		targetLabel.classList.add('folder-selected');
+	}
+}
+
 async function setSelectedFolderPath(pathSegments) {
 	selectedFolderPath = Array.isArray(pathSegments) ? pathSegments : [];
 	updateSelectedFolderUI();
+	updateSelectedFolderHighlight(selectedFolderPath);
 	try {
 		await chrome.storage.local.set({ selectedFolderPath });
 	} catch (error) {
@@ -1661,6 +1692,8 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 
 	// 폴더 아이콘과 이름 (클릭 영역)
 	const labelGroup = document.createElement('div');
+	labelGroup.className = 'folder-label';
+	labelGroup.dataset.folderPath = pathSegments.join('/');
 	labelGroup.style.display = 'flex';
 	labelGroup.style.alignItems = 'center';
 	labelGroup.style.flex = '1';
@@ -1679,6 +1712,14 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 
 	labelGroup.appendChild(iconMap);
 	labelGroup.appendChild(nameSpan);
+
+	// 폴더 아이콘/이름 클릭 시 저장 위치 선택
+	labelGroup.addEventListener('click', (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		setSelectedFolderPath(pathSegments);
+	});
+
 	summary.appendChild(labelGroup);
 
 	// 핀 버튼 (우측)
@@ -1703,17 +1744,6 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 	};
 
 	summary.appendChild(pinBtn);
-
-	// Shift+클릭으로 저장 위치(폴더) 선택
-	summary.addEventListener('click', (event) => {
-		if (!event.shiftKey) {
-			return;
-		}
-		event.preventDefault();
-		event.stopPropagation();
-		const path = details.dataset.path ? details.dataset.path.split('/').filter(Boolean) : [];
-		setSelectedFolderPath(path);
-	});
 
 	details.appendChild(summary);
 
@@ -1777,6 +1807,9 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 		}
 
 		details.dataset.loaded = '1';
+
+		// 하위 폴더가 로드된 후 선택된 폴더 하이라이트 갱신
+		updateSelectedFolderHighlight(selectedFolderPath);
 	});
 
 	return details;
@@ -1832,12 +1865,15 @@ async function renderDirectoryTree(dirHandle) {
 	} catch (error) {
 		// ignore
 	}
+
+	// 저장된 선택 폴더 하이라이트
+	updateSelectedFolderHighlight(selectedFolderPath);
 }
 
 // 페이지 로드 시 권한 확인 및 디렉토리 로드
 async function initDirectory() {
 	const statusDiv = document.getElementById('dir-status');
-	const selectBtn = document.getElementById('select-dir-btn');
+	const quickInfo = document.getElementById('storage-quick-info');
 
 	try {
 		// 권한 상태 확인 (prompt 없이)
@@ -1846,9 +1882,11 @@ async function initDirectory() {
 		if (exists && permission === 'granted') {
 			// 권한이 이미 부여됨 - 바로 사용 가능
 			currentDirHandle = dirHandle;
-			statusDiv.textContent = '연결됨';
-			statusDiv.className = 'status-badge connected';
-			selectBtn.textContent = '변경';
+			if (statusDiv) {
+				statusDiv.textContent = '연결됨';
+				statusDiv.className = 'status-badge connected';
+			}
+			if (quickInfo) quickInfo.style.borderColor = '#e6f4ea';
 
 			// 대기 중인 파일 저장 처리
 			processPendingFileSaves();
@@ -1856,23 +1894,29 @@ async function initDirectory() {
 			loadSelectedFolderPath();
 		} else if (exists && permission === 'prompt') {
 			// 권한이 만료됨 - 사용자 제스처 필요
-			statusDiv.textContent = '권한 필요';
-			statusDiv.className = 'status-badge warning';
-			selectBtn.textContent = '권한 재확인';
+			if (statusDiv) {
+				statusDiv.textContent = '권한 필요';
+				statusDiv.className = 'status-badge warning';
+			}
+			if (quickInfo) quickInfo.style.borderColor = '#fef7e0';
 			renderDirectoryTree(null);
 			loadSelectedFolderPath();
 		} else {
 			// 디렉토리가 선택되지 않음
-			statusDiv.textContent = '미연결';
-			statusDiv.className = 'status-badge disconnected';
-			selectBtn.textContent = '폴더 선택';
+			if (statusDiv) {
+				statusDiv.textContent = '미연결';
+				statusDiv.className = 'status-badge disconnected';
+			}
+			if (quickInfo) quickInfo.style.borderColor = '#fce8e6';
 			renderDirectoryTree(null);
 			loadSelectedFolderPath();
 		}
 	} catch (error) {
 		console.error('초기화 실패:', error);
-		statusDiv.textContent = '오류';
-		statusDiv.className = 'status-badge disconnected';
+		if (statusDiv) {
+			statusDiv.textContent = '오류';
+			statusDiv.className = 'status-badge disconnected';
+		}
 		renderDirectoryTree(null);
 		loadSelectedFolderPath();
 	}
@@ -1918,21 +1962,25 @@ async function processPendingFileSaves() {
 // 디렉토리 선택 버튼 클릭 핸들러
 async function handleSelectDirectory() {
 	const statusDiv = document.getElementById('dir-status');
-	const selectBtn = document.getElementById('select-dir-btn');
+	const quickInfo = document.getElementById('storage-quick-info');
 
 	try {
-		selectBtn.disabled = true;
-		statusDiv.textContent = '처리 중...';
-		statusDiv.className = 'status-badge';
+		if (quickInfo) quickInfo.style.opacity = '0.5';
+		if (statusDiv) {
+			statusDiv.textContent = '처리 중...';
+			statusDiv.className = 'status-badge';
+		}
 
 		// 사용자 제스처 컨텍스트에서 바로 디렉토리 선택 (await 없이)
 		// 비동기 작업 후 user activation이 만료되므로 바로 호출
 		currentDirHandle = await chooseAndStoreDirectory();
 
 		if (currentDirHandle) {
-			statusDiv.textContent = '연결됨';
-			statusDiv.className = 'status-badge connected';
-			selectBtn.textContent = '변경';
+			if (statusDiv) {
+				statusDiv.textContent = '연결됨';
+				statusDiv.className = 'status-badge connected';
+			}
+			if (quickInfo) quickInfo.style.borderColor = '#e6f4ea';
 
 			// 대기 중인 파일 저장 처리
 			processPendingFileSaves();
@@ -1948,14 +1996,359 @@ async function handleSelectDirectory() {
 		alert(fullMsg);
 
 		if (errName === 'AbortError') {
-			statusDiv.textContent = '취소됨';
-			statusDiv.className = 'status-badge';
+			if (statusDiv) {
+				statusDiv.textContent = '취소됨';
+				statusDiv.className = 'status-badge';
+			}
 		} else {
-			statusDiv.textContent = '오류';
-			statusDiv.className = 'status-badge disconnected';
+			if (statusDiv) {
+				statusDiv.textContent = '오류';
+				statusDiv.className = 'status-badge disconnected';
+			}
 		}
 	} finally {
-		selectBtn.disabled = false;
+		if (quickInfo) quickInfo.style.opacity = '1';
+	}
+}
+
+// ============================================
+// 추출 파이프라인 모달 관련 함수들
+// ============================================
+
+function openPlanModal() {
+	const modal = document.getElementById('plan-modal');
+	if (modal) modal.classList.add('open');
+}
+
+function closePlanModal() {
+	const modal = document.getElementById('plan-modal');
+	if (modal) modal.classList.remove('open');
+	currentExtractionPlan = null;
+}
+
+function showPlanLoading() {
+	const body = document.getElementById('plan-modal-body');
+	const footer = document.getElementById('plan-modal-footer');
+	if (body) {
+		body.innerHTML = `
+			<div class="plan-loading">
+				<div class="spinner"></div>
+				<div>대화를 분석하고 있습니다...</div>
+			</div>
+		`;
+	}
+	if (footer) footer.style.display = 'none';
+}
+
+function renderPlanResult(plan) {
+	const body = document.getElementById('plan-modal-body');
+	const footer = document.getElementById('plan-modal-footer');
+
+	if (!body || !plan) return;
+
+	// 태그 배지 생성
+	const tagBadges = (plan.tags || [])
+		.map(tag => `<span class="tag-badge">${tag}</span>`)
+		.join('');
+
+	// 문서별 렌더링
+	const documents = plan.documents || [];
+	const documentsHtml = documents.map((doc, idx) => {
+		const sectionsHtml = doc.sections.map(section =>
+			`<div class="extraction-item">${section.heading}</div>`
+		).join('');
+
+		return `
+			<div class="extraction-type" data-doc-idx="${idx}">
+				<label class="extraction-type-header">
+					<input type="checkbox" class="doc-checkbox" checked data-doc-idx="${idx}">
+					<span class="extraction-type-label">${doc.title}</span>
+					<span class="extraction-type-count">${doc.sections?.length || 0}섹션</span>
+				</label>
+				<div class="extraction-items">
+					<div style="font-size: 0.85em; color: #666; margin-bottom: 4px;">${doc.description}</div>
+					${sectionsHtml}
+				</div>
+			</div>
+		`;
+	}).join('');
+
+	body.innerHTML = `
+		<div class="plan-folder-name">
+			<strong>${plan.folder_name || '새 폴더'}</strong>
+		</div>
+		<div class="plan-summary">
+			${plan.summary || ''}
+			<div class="tags-preview">${tagBadges}</div>
+		</div>
+		${documentsHtml || '<div style="color: #888; text-align: center; padding: 20px;">추출할 문서가 없습니다.</div>'}
+	`;
+
+	if (footer) footer.style.display = 'flex';
+}
+
+function showPlanError(message) {
+	const body = document.getElementById('plan-modal-body');
+	const footer = document.getElementById('plan-modal-footer');
+	if (body) {
+		body.innerHTML = `
+			<div style="text-align: center; padding: 30px; color: #d93025;">
+				<div style="font-size: 2em; margin-bottom: 10px;">!</div>
+				<div>${message}</div>
+			</div>
+		`;
+	}
+	if (footer) footer.style.display = 'none';
+}
+
+function getSelectedDocumentIndices() {
+	const checkboxes = document.querySelectorAll('.doc-checkbox:checked');
+	return Array.from(checkboxes).map(cb => parseInt(cb.dataset.docIdx, 10));
+}
+
+async function executeExtraction() {
+	const statusEl = document.getElementById('save-status');
+	const confirmBtn = document.getElementById('plan-confirm-btn');
+
+	if (!currentExtractionPlan || !currentConversationContent) {
+		console.error('추출 계획 또는 대화 내용이 없습니다.');
+		return;
+	}
+
+	const selectedIndices = getSelectedDocumentIndices();
+	if (selectedIndices.length === 0) {
+		alert('최소 하나의 문서를 선택해주세요.');
+		return;
+	}
+
+	try {
+		if (confirmBtn) {
+			confirmBtn.disabled = true;
+			confirmBtn.textContent = '추출 중...';
+		}
+
+		const apiKey = await loadApiKey();
+		const plan = currentExtractionPlan;
+		const content = currentConversationContent;
+
+		// 1. 폴더 생성
+		if (!currentDirHandle) {
+			throw new Error('저장소가 연결되지 않았습니다.');
+		}
+
+		// 선택된 폴더 경로에 새 폴더 생성
+		let targetHandle = currentDirHandle;
+		if (selectedFolderPath.length > 0) {
+			targetHandle = await getOrCreateNestedSubfolder(currentDirHandle, selectedFolderPath);
+		}
+
+		const folderName = sanitizeFileName(plan.folder_name || `${formatDateForTitle(new Date())}_extraction`);
+		const extractionFolder = await targetHandle.getDirectoryHandle(folderName, { create: true });
+
+		// 2. _raw.md 저장 (원본 대화)
+		const rawFileName = '_raw.md';
+		const rawContent = createRawMarkdownContent(plan, content);
+		const rawFileHandle = await extractionFolder.getFileHandle(rawFileName, { create: true });
+		const rawWritable = await rawFileHandle.createWritable();
+		await rawWritable.write(rawContent);
+		await rawWritable.close();
+
+		// 3. 선택된 문서별 파일 생성
+		const selectedDocuments = selectedIndices.map(idx => plan.documents[idx]).filter(Boolean);
+
+		for (const doc of selectedDocuments) {
+			try {
+				const { title: extractedTitle, content: extractedContent } = await writeExtraction(content, doc, apiKey);
+				const fileName = `${sanitizeFileName(extractedTitle)}.md`;
+				const fileHandle = await extractionFolder.getFileHandle(fileName, { create: true });
+				const writable = await fileHandle.createWritable();
+				await writable.write(extractedContent);
+				await writable.close();
+			} catch (err) {
+				console.error(`${doc.title} 파일 생성 실패:`, err);
+			}
+		}
+
+		// 4. 완료
+		closePlanModal();
+		if (statusEl) {
+			statusEl.textContent = `${folderName}에 ${selectedDocuments.length + 1}개 파일 저장 완료!`;
+			statusEl.style.color = '#34a853';
+		}
+
+		// 디렉토리 트리 새로고침
+		renderDirectoryTree(currentDirHandle);
+
+	} catch (error) {
+		console.error('추출 실행 실패:', error);
+		showPlanError(error.message);
+	} finally {
+		if (confirmBtn) {
+			confirmBtn.disabled = false;
+			confirmBtn.textContent = '추출 시작';
+		}
+	}
+}
+
+function createRawMarkdownContent(plan, content) {
+	const now = new Date();
+	const tzOffset = -now.getTimezoneOffset();
+	const tzSign = tzOffset >= 0 ? '+' : '-';
+	const tzHours = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
+	const tzMins = String(Math.abs(tzOffset) % 60).padStart(2, '0');
+	const localISOTime = now.getFullYear() + '-' +
+		String(now.getMonth() + 1).padStart(2, '0') + '-' +
+		String(now.getDate()).padStart(2, '0') + 'T' +
+		String(now.getHours()).padStart(2, '0') + ':' +
+		String(now.getMinutes()).padStart(2, '0') + ':' +
+		String(now.getSeconds()).padStart(2, '0') +
+		tzSign + tzHours + ':' + tzMins;
+
+	const tagsYaml = plan.tags?.length
+		? `\ntags:\n${plan.tags.map(t => `  - ${yamlQuote(t)}`).join('\n')}`
+		: '\ntags: []';
+
+	const frontmatter = `---
+createdAt: ${yamlQuote(localISOTime)}
+title: ${yamlQuote(plan.folder_name || 'Untitled')}
+summary: ${yamlQuote(plan.summary || '')}${tagsYaml}
+llm: ${yamlQuote(currentDetectedLLM)}
+type: "raw"
+---`;
+
+	return `${frontmatter}\n\n# ${plan.folder_name || 'Conversation'}\n\n${content}\n`;
+}
+
+/**
+ * AI 버튼 클릭 - 제목/태그 자동 생성 (내용정리 모드 OFF용) 또는 추출 파이프라인 시작 (ON용)
+ */
+async function handleAIGenerate() {
+	// 내용정리 모드가 켜져 있으면 추출 파이프라인 시작
+	const multiFileMode = document.getElementById('multi-file-mode')?.checked;
+	if (multiFileMode) {
+		await startExtractionPipeline();
+		return;
+	}
+
+	const statusEl = document.getElementById('save-status');
+	const aiGenBtn = document.getElementById('ai-gen-btn');
+	const titleInput = document.getElementById('clip-title');
+	const tagsInput = document.getElementById('default-tags');
+
+	const setStatus = (text, color) => {
+		if (statusEl) {
+			statusEl.textContent = text;
+			statusEl.style.color = color || '#888';
+		}
+	};
+
+	try {
+		if (aiGenBtn) aiGenBtn.disabled = true;
+		setStatus('AI 분석 중...', '#888');
+
+		// 1. 대화 내용 추출
+		let content = '';
+		if (currentDetectedLLM === 'ChatGPT') {
+			const res = await extractChatGPTConversationFromActiveTab();
+			content = buildChatGPTMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Claude') {
+			const res = await extractClaudeConversationFromActiveTab();
+			content = buildClaudeMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Gemini') {
+			const res = await extractGeminiConversationFromActiveTab();
+			content = buildGeminiMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Grok') {
+			const res = await extractGrokConversationFromActiveTab();
+			content = buildGrokMarkdownFromTurns(res.turns, null, 'temp');
+		} else {
+			setStatus('지원되는 LLM 페이지에서 이용해 주세요', '#888');
+			return;
+		}
+
+		if (!content?.trim()) {
+			throw new Error('분석할 대화 내용이 없습니다.');
+		}
+
+		// 2. API Key 확인
+		const apiKey = await loadApiKey();
+		if (!apiKey?.trim()) {
+			throw new Error('API Key가 설정되지 않았습니다.');
+		}
+
+		// 3. generateMetadata 호출
+		const metadata = await generateMetadata(content, apiKey);
+
+		// 4. 결과를 입력창에 채우기
+		if (titleInput && metadata.title) {
+			titleInput.value = metadata.title;
+		}
+		if (tagsInput && metadata.tags) {
+			tagsInput.value = metadata.tags.join(', ');
+		}
+
+		setStatus('AI 생성 완료', '#4caf50');
+
+	} catch (error) {
+		console.error('AI 생성 실패:', error);
+		setStatus(`AI 생성 실패: ${error.message}`, '#f44336');
+	} finally {
+		if (aiGenBtn) aiGenBtn.disabled = false;
+	}
+}
+
+async function startExtractionPipeline() {
+	const statusEl = document.getElementById('save-status');
+	const aiGenBtn = document.getElementById('ai-gen-btn');
+
+	try {
+		// 1. 대화 내용 추출
+		let content = '';
+		if (currentDetectedLLM === 'ChatGPT') {
+			const res = await extractChatGPTConversationFromActiveTab();
+			content = buildChatGPTMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Claude') {
+			const res = await extractClaudeConversationFromActiveTab();
+			content = buildClaudeMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Gemini') {
+			const res = await extractGeminiConversationFromActiveTab();
+			content = buildGeminiMarkdownFromTurns(res.turns, null, 'temp');
+		} else if (currentDetectedLLM === 'Grok') {
+			const res = await extractGrokConversationFromActiveTab();
+			content = buildGrokMarkdownFromTurns(res.turns, null, 'temp');
+		} else {
+			if (statusEl) {
+				statusEl.textContent = '지원되는 LLM 페이지에서 이용해 주세요';
+				statusEl.style.color = '#888';
+			}
+			return;
+		}
+
+		if (!content?.trim()) {
+			throw new Error('분석할 대화 내용이 없습니다.');
+		}
+
+		currentConversationContent = content;
+
+		// 2. 모달 열기 및 로딩 표시
+		openPlanModal();
+		showPlanLoading();
+
+		// 3. API Key 확인
+		const apiKey = await loadApiKey();
+		if (!apiKey?.trim()) {
+			throw new Error('API Key가 설정되지 않았습니다.');
+		}
+
+		// 4. Planning Agent 호출
+		const plan = await planExtraction(content, apiKey);
+		currentExtractionPlan = plan;
+
+		// 5. 결과 렌더링
+		renderPlanResult(plan);
+
+	} catch (error) {
+		console.error('추출 파이프라인 시작 실패:', error);
+		showPlanError(error.message);
 	}
 }
 
@@ -2040,93 +2433,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 이벤트 리스너 등록
 document.addEventListener('DOMContentLoaded', () => {
-	const selectBtn = document.getElementById('select-dir-btn');
-	if (selectBtn) {
-		selectBtn.addEventListener('click', handleSelectDirectory);
+	const storageQuickInfo = document.getElementById('storage-quick-info');
+	if (storageQuickInfo) {
+		storageQuickInfo.addEventListener('click', handleSelectDirectory);
 	}
 
-	// AI 자동 생성 버튼
+	// AI 자동 생성 버튼 - 제목/태그 자동 생성
 	const aiGenBtn = document.getElementById('ai-gen-btn');
 	if (aiGenBtn) {
-		aiGenBtn.addEventListener('click', async () => {
-			const statusEl = document.getElementById('save-status');
-			const titleInput = document.getElementById('clip-title');
-			const tagsInput = document.getElementById('default-tags');
+		aiGenBtn.addEventListener('click', handleAIGenerate);
+	}
 
-			try {
-				if (aiGenBtn.disabled) return;
-				aiGenBtn.disabled = true;
-				aiGenBtn.textContent = '⏳...';
-				if (statusEl) statusEl.textContent = 'AI 분석 중...';
+	// 모달 버튼 이벤트
+	const planModalClose = document.getElementById('plan-modal-close');
+	const planCancelBtn = document.getElementById('plan-cancel-btn');
+	const planConfirmBtn = document.getElementById('plan-confirm-btn');
+	const planModal = document.getElementById('plan-modal');
 
-				// 1. 현재 활성 탭에서 대화 내용 추출
-				let content = '';
-				if (currentDetectedLLM === 'ChatGPT') {
-					const res = await extractChatGPTConversationFromActiveTab();
-					content = buildChatGPTMarkdownFromTurns(res.turns, null, 'temp');
-				} else if (currentDetectedLLM === 'Claude') {
-					const res = await extractClaudeConversationFromActiveTab();
-					content = buildClaudeMarkdownFromTurns(res.turns, null, 'temp');
-				} else if (currentDetectedLLM === 'Gemini') {
-					const res = await extractGeminiConversationFromActiveTab();
-					content = buildGeminiMarkdownFromTurns(res.turns, null, 'temp');
-				} else if (currentDetectedLLM === 'Grok') {
-					const res = await extractGrokConversationFromActiveTab();
-					content = buildGrokMarkdownFromTurns(res.turns, null, 'temp');
-				} else {
-					// 지원되지 않는 페이지: 에러가 아닌 상태 안내로 처리
-					console.info('AI 분석: 현재 페이지는 지원 대상이 아닙니다.');
-					if (statusEl) {
-						statusEl.textContent = '지원되는 LLM 페이지에서 이용해 주세요 (ChatGPT, Claude, Gemini, Grok)';
-						statusEl.style.color = '#888';
-					}
-					aiGenBtn.disabled = false;
-					aiGenBtn.innerHTML = '<span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> AI';
-					return; // 에러를 던지지 않고 조기 반환
-				}
-
-				if (!content || !content.trim()) {
-					throw new Error('분석할 대화 내용이 없습니다.');
-				}
-
-				// 2. API Key 로드
-				const apiKey = await loadApiKey();
-				if (!apiKey || !apiKey.trim()) {
-					throw new Error('API Key가 설정되지 않았습니다. 상단 설정에서 OpenAI API Key를 입력해주세요.');
-				}
-
-				// 3. OpenAI API 호출
-				const metadata = await generateMetadata(content, apiKey);
-
-				// 3. UI 적용
-				if (metadata.title && titleInput) {
-					titleInput.value = metadata.title;
-				}
-				if (metadata.tags && Array.isArray(metadata.tags) && tagsInput) {
-					tagsInput.value = metadata.tags.join(', ');
-				}
-
-				if (statusEl) {
-					statusEl.textContent = 'AI 분석 완료!';
-					statusEl.style.color = '#34a853';
-				}
-
-				// 요약 내용은? (Optional: 콘솔에 로그 or 알림)
-				if (metadata.summary) {
-					console.log('AI Summary:', metadata.summary);
-					currentGeneratedSummary = metadata.summary;
-				}
-
-			} catch (error) {
-				console.error('AI Generation Failed:', error);
-				if (statusEl) {
-					statusEl.textContent = `AI 오류: ${error.message}`;
-					statusEl.style.color = '#f44336';
-				}
-			} finally {
-				aiGenBtn.disabled = false;
-				aiGenBtn.innerHTML = '<span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> AI';
-			}
+	if (planModalClose) {
+		planModalClose.addEventListener('click', closePlanModal);
+	}
+	if (planCancelBtn) {
+		planCancelBtn.addEventListener('click', closePlanModal);
+	}
+	if (planConfirmBtn) {
+		planConfirmBtn.addEventListener('click', executeExtraction);
+	}
+	// 모달 외부 클릭 시 닫기
+	if (planModal) {
+		planModal.addEventListener('click', (e) => {
+			if (e.target === planModal) closePlanModal();
 		});
 	}
 	const clearFolderBtn = document.getElementById('clear-folder-btn');
@@ -2149,6 +2485,18 @@ document.addEventListener('DOMContentLoaded', () => {
 	const refreshBtn = document.getElementById('refresh-detection-btn');
 	if (refreshBtn) {
 		refreshBtn.addEventListener('click', detectAndUpdateLLM);
+	}
+
+	// 내용정리 모드 토글 스토리지 저장
+	const multiFileModeSwitch = document.getElementById('multi-file-mode');
+	if (multiFileModeSwitch) {
+		chrome.storage.local.get('multiFileMode', (result) => {
+			// 기본값을 false로 설정 (undefined인 경우 false)
+			multiFileModeSwitch.checked = result.multiFileMode === true;
+		});
+		multiFileModeSwitch.addEventListener('change', (e) => {
+			chrome.storage.local.set({ multiFileMode: e.target.checked });
+		});
 	}
 
 	// API Key 저장 버튼

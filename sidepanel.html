@@ -63,6 +63,31 @@
       fill: none;
     }
 
+    /* 선택된 폴더 스타일 */
+    .folder-selected .icon svg {
+      fill: #4285f4;
+      stroke: #4285f4;
+    }
+    .folder-selected {
+      color: #4285f4;
+      font-weight: 500;
+    }
+
+    /* 폴더 아이콘 hover 효과 */
+    .folder-label:hover .icon svg {
+      fill: rgba(66, 133, 244, 0.3);
+    }
+    .folder-label {
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      transition: background-color 0.15s;
+    }
+    .folder-label:hover {
+      background-color: rgba(66, 133, 244, 0.1);
+    }
+
     .icon-sm {
       width: 14px;
       height: 14px;
@@ -188,6 +213,285 @@
       background: #fef7e0;
       color: #f9ab00;
     }
+
+    /* Extraction Plan Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: #888;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .plan-folder-name {
+      background: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .plan-summary {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 12px;
+      padding: 8px;
+      background: #fafafa;
+      border-radius: 4px;
+    }
+
+    .extraction-type {
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .extraction-type-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      background: #fafafa;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .extraction-type-header:hover {
+      background: #f0f0f0;
+    }
+
+    .extraction-type-checkbox {
+      margin-right: 10px;
+    }
+
+    .extraction-type-icon {
+      margin-right: 8px;
+      font-size: 1.1em;
+    }
+
+    .extraction-type-label {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .extraction-type-count {
+      font-size: 0.8em;
+      color: #888;
+      background: #e8e8e8;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .extraction-items {
+      padding: 8px 12px;
+      font-size: 0.85em;
+      border-top: 1px solid #eee;
+    }
+
+    .extraction-item {
+      padding: 4px 0;
+      color: #555;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .extraction-item::before {
+      content: "•";
+      color: #999;
+    }
+
+    .btn-primary {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .plan-loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .plan-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #eee;
+      border-top-color: #6e8efb;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .tags-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .tag-badge {
+      font-size: 0.75em;
+      padding: 2px 8px;
+      background: #e8f0fe;
+      color: #4285f4;
+      border-radius: 10px;
+    }
+
+    /* Toggle Switch Styles */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 28px;
+      height: 16px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 16px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #4285f4;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(12px);
+    }
   </style>
 </head>
 
@@ -201,13 +505,22 @@
         </svg></span>
       LLM Archive
     </h3>
-    <button id="settings-toggle-btn" class="settings-toggle" title="설정">
-      <span class="icon"><svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg></span>
-    </button>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div id="storage-quick-info" title="클릭하여 저장소 변경"
+        style="display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 4px 8px; border-radius: 6px; border: 1px solid #eee; background: white; font-size: 0.8em; transition: all 0.2s ease;">
+        <span class="icon icon-sm"><svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg></span>
+        <span id="dir-status" class="status-badge" style="padding: 1px 6px;">확인 중...</span>
+      </div>
+      <button id="settings-toggle-btn" class="settings-toggle" title="설정">
+        <span class="icon"><svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg></span>
+      </button>
+    </div>
   </div>
 
   <!-- Collapsible Settings Panel -->
@@ -232,19 +545,6 @@
           →</a>
       </div>
     </div>
-
-    <!-- Directory Connection Section -->
-    <div class="settings-section">
-      <div class="settings-section-header">
-        <strong class="section-header"><span class="icon icon-sm"><svg viewBox="0 0 24 24">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg></span> 저장소</strong>
-        <span id="dir-status" class="status-badge">로딩 중...</span>
-      </div>
-      <button id="select-dir-btn"
-        style="width: 100%; background: #4285f4; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">폴더
-        선택</button>
-    </div>
   </div>
 
   <div class="pin-section">
@@ -257,14 +557,21 @@
   </div>
 
   <div class="pin-section">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-      <strong class="section-header"><span class="icon"><svg viewBox="0 0 24 24">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <strong class="section-header" style="white-space: nowrap;"><span class="icon"><svg viewBox="0 0 24 24">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg></span> 디렉토리 트리</strong>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span id="selected-folder" style="font-size: 0.8em; color: #666;">저장 위치: (미선택)</span>
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0;">
+        <span id="selected-folder" style="font-size: 0.8em; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">저장 위치: (미선택)</span>
         <button id="clear-folder-btn"
-          style="background: transparent; border: 1px solid #ddd; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em;">✕</button>
+          style="background: transparent; border: 1px solid #ddd; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex-shrink: 0;">✕</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <span style="font-size: 0.75em; color: #888;">내용정리</span>
+        <label class="switch">
+          <input type="checkbox" id="multi-file-mode">
+          <span class="slider"></span>
+        </label>
       </div>
     </div>
     <div style="margin-top: 8px;">
@@ -272,12 +579,8 @@
         <input id="clip-title" type="text" placeholder="제목 (비우면 자동)"
           style="flex: 1; padding: 6px; box-sizing: border-box;">
         <button id="ai-gen-btn" title="AI로 제목/태그/요약 자동 생성"
-          style="background: linear-gradient(135deg, #6e8efb, #a777e3); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em;"
+          style="background: #6e8efb; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em;"
           class="btn-icon">
-          <span class="icon icon-sm" style="color: white;"><svg viewBox="0 0 24 24">
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg></span>
           AI</button>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
@@ -323,6 +626,27 @@
       <div id="save-status" style="margin-top: 8px; font-size: 0.85em; color: #888;"></div>
     </div>
     <div id="dir-tree" style="margin-top: 10px; font-size: 0.9em; color: #555;">디렉토리를 연결하면 여기에 폴더/파일이 표시됩니다.</div>
+  </div>
+
+  <!-- Extraction Plan Modal -->
+  <div id="plan-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>추출 계획</h3>
+        <button class="modal-close" id="plan-modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="plan-modal-body">
+        <!-- Dynamic content will be inserted here -->
+        <div class="plan-loading">
+          <div class="spinner"></div>
+          <div>대화를 분석하고 있습니다...</div>
+        </div>
+      </div>
+      <div class="modal-footer" id="plan-modal-footer" style="display: none;">
+        <button class="btn-secondary" id="plan-cancel-btn">취소</button>
+        <button class="btn-primary" id="plan-confirm-btn">추출 시작</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="sidepanel.js"></script>
