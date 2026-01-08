@@ -5,7 +5,8 @@ import {
 	checkDirectoryPermission,
 	saveFileToDirectory,
 	getOrCreateSubfolder,
-	getOrCreateNestedSubfolder
+	getOrCreateNestedSubfolder,
+	ensureUniqueFileName
 } from './fileSystemUtils.js';
 import { generateMetadata, planExtraction, writeExtraction } from './openaiUtils.js';
 
@@ -13,6 +14,7 @@ import { generateMetadata, planExtraction, writeExtraction } from './openaiUtils
 let currentDirHandle = null;
 let selectedFolderPath = []; // 현재 선택된 저장 경로 (배열)
 let pinnedPaths = [];        // 핀된 경로 목록 (배열의 배열)
+let expandedPaths = new Set(); // 펼쳐진 폴더 경로 저장
 
 // 핀 최대 개수
 const MAX_PINS = 5;
@@ -1657,7 +1659,7 @@ async function listDirectoryEntries(dirHandle, maxEntries) {
 
 function createTreeFileNode(name) {
 	const el = document.createElement('div');
-	el.style.padding = '3px 0 3px 16px';
+	el.style.padding = '2px 0 2px 16px';
 	el.style.display = 'flex';
 	el.style.alignItems = 'center';
 	el.style.gap = '4px';
@@ -1713,13 +1715,19 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 	labelGroup.appendChild(iconMap);
 	labelGroup.appendChild(nameSpan);
 
-	// 폴더 아이콘/이름 클릭 시 저장 위치 선택
+	// 폴더 아이콘/이름 클릭 시 저장 위치 선택 (확장은 차단)
 	labelGroup.addEventListener('click', (event) => {
 		event.preventDefault();
 		event.stopPropagation();
 		setSelectedFolderPath(pathSegments);
 	});
 
+	// 확장/축소용 화살표 아이콘 (Chevron)
+	const chevron = document.createElement('span');
+	chevron.className = 'tree-chevron';
+	chevron.innerHTML = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+
+	summary.appendChild(chevron);
 	summary.appendChild(labelGroup);
 
 	// 핀 버튼 (우측)
@@ -1751,19 +1759,23 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 	children.style.marginLeft = '14px';
 	children.style.borderLeft = '1px solid #eee';
 	children.style.paddingLeft = '8px';
-	children.style.marginTop = '4px';
+	children.style.marginTop = '2px';
 	details.appendChild(children);
 
 	details.addEventListener('toggle', async () => {
+		const pathKey = pathSegments.join('/');
 		if (!details.open) {
+			expandedPaths.delete(pathKey);
 			return;
 		}
+		expandedPaths.add(pathKey);
+
 		if (details.dataset.loaded === '1') {
 			return;
 		}
 		if (depth >= options.maxDepth) {
 			const hint = document.createElement('div');
-			hint.style.padding = '3px 0';
+			hint.style.padding = '3px 0 2px 16px';
 			hint.style.color = '#888';
 			hint.textContent = '… (더 깊은 폴더는 생략됨)';
 			children.appendChild(hint);
@@ -1789,7 +1801,7 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 
 		if (entries.length === 0) {
 			const empty = document.createElement('div');
-			empty.style.padding = '3px 0';
+			empty.style.padding = '2px 0 2px 16px';
 			empty.style.color = '#888';
 			empty.textContent = '(비어있음)';
 			children.appendChild(empty);
@@ -1811,6 +1823,11 @@ function createTreeFolderNode(name, dirHandle, depth, options, parentPath) {
 		// 하위 폴더가 로드된 후 선택된 폴더 하이라이트 갱신
 		updateSelectedFolderHighlight(selectedFolderPath);
 	});
+
+	// 상태 복원: 이전에 열려있던 폴더면 자동으로 열기
+	if (expandedPaths.has(pathSegments.join('/'))) {
+		details.open = true;
+	}
 
 	return details;
 }
@@ -2407,8 +2424,9 @@ async function saveClipToFileSystem(clip) {
 		const content = createMarkdownContent(clip, tags, folderPathLabel, safeTitle);
 
 		// 파일 저장
-		await saveFileToDirectory(folderHandle, fileName, content);
-		console.log(`파일 시스템에 저장 완료: ${folderPathLabel}/${fileName}`);
+		const uniqueFileName = await ensureUniqueFileName(folderHandle, fileName);
+		await saveFileToDirectory(folderHandle, uniqueFileName, content);
+		console.log(`파일 시스템에 저장 완료: ${folderPathLabel}/${uniqueFileName}`);
 		return true;
 	} catch (error) {
 		console.error('파일 시스템 저장 실패:', error);

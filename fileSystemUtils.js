@@ -164,12 +164,50 @@ async function getOrCreateNestedSubfolder(rootDirHandle, pathSegments) {
 	}
 }
 
+// 파일명 중복 방지 (같은 이름이 있으면 (1), (2) 붙임)
+async function ensureUniqueFileName(dirHandle, fileName) {
+	try {
+		// 확장자 분리
+		const dotIndex = fileName.lastIndexOf('.');
+		let name = fileName;
+		let ext = '';
+		if (dotIndex !== -1) {
+			name = fileName.substring(0, dotIndex);
+			ext = fileName.substring(dotIndex);
+		}
+
+		let finalName = fileName;
+		let counter = 1;
+
+		while (true) {
+			try {
+				// 파일이 존재하는지 확인 (없으면 에러 발생하므로 catch로 이동)
+				await dirHandle.getFileHandle(finalName);
+				// 파일이 존재함 -> 이름 변경 후 재시도
+				finalName = `${name} (${counter})${ext}`;
+				counter++;
+			} catch (error) {
+				if (error.name === 'NotFoundError') {
+					// 파일이 없음 -> 사용 가능
+					return finalName;
+				}
+				throw error; // 다른 에러는 throw
+			}
+		}
+	} catch (error) {
+		console.error('파일명 중복 확인 실패:', error);
+		// 실패 시 원래 이름 반환 (덮어쓰기 위험 감수)
+		return fileName;
+	}
+}
+
 export {
 	chooseAndStoreDirectory,
 	loadAndVerifyDirectory,
 	checkDirectoryPermission,
 	saveFileToDirectory,
 	getOrCreateSubfolder,
-	getOrCreateNestedSubfolder
+	getOrCreateNestedSubfolder,
+	ensureUniqueFileName
 };
 
